@@ -73,3 +73,4 @@ def test_cli_evaluate_errors() -> None:
     )
     ret = cmd_evaluate(args)
     assert ret == 0
+

@@ -36,3 +36,4 @@ While FieldGuard achieves 94.05% classification accuracy, 94.11% macro-F1, and r
 
 ## 6. Optional LLM Integration Limitations
 - While FieldGuard's core pipeline is fully deterministic, offline-capable, and requires zero paid API tokens, optional LLM-assisted claim parsing (`Parser B`) is sensitive to API rate limits, provider outages, and non-deterministic JSON formatting errors. FieldGuard provides deterministic fallback (`Parser A`) to maintain offline reproducibility.
+

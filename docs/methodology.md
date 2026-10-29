@@ -105,3 +105,4 @@ When candidate evidence is retrieved, the verifier executes the following strict
 4. **Selective Accuracy:** Accuracy calculated strictly over covered (non-abstained) predictions.
 5. **Retrieval Recall@k and Item Recall@k:** Proportion of queries and proportion of individual relevant evidence units retrieved in top-$k$.
 6. **Statistical Uncertainty:** 95% confidence intervals estimated via 1,000 cluster-bootstrap resamples at the claim-family level.
+

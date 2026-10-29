@@ -174,3 +174,4 @@ if st.button("🔍 Verify Claim", type="primary"):
             with st.expander(f"{header_icon} [Rank {idx + 1}] {item['evidence_id']} — Source: {item['source_document_id']} (Page {item.get('physical_pdf_page', 'N/A')})"):
                 st.markdown(f"**Score:** `{round(item.get('retrieval_score', 0.0), 4)}` | **Type:** `{item.get('evidence_type', 'chunk')}`")
                 st.markdown(f"```text\n{item.get('text', '')}\n```")
+

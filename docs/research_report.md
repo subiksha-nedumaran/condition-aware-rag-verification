@@ -279,3 +279,4 @@ Future extensions include:
 10. Schuster, T., Shah, D., Yeo, Y. J., Filizzola, R., & Barzilay, R. (2019). Towards Debbiasing Fact Verification Models. In *Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing (EMNLP)*, pp. 3419–3425.
 11. Sundar, R., Kumar, A., & Goyal, P. (2024). Verifying Complex Numerical Claims in Multi-Table Financial Filings. In *Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (ACL)*, pp. 1420–1435.
 12. Thorne, J., Vlachos, A., Christodoulopoulos, C., & Mittal, A. (2018). FEVER: A Large-scale Dataset for Fact Extraction and VERification. In *Proceedings of the 2018 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL-HLT)*, pp. 809–819.
+
