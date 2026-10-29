@@ -222,7 +222,7 @@ def extract_numeric_operator(text: str) -> tuple[str, bool]:
         return "le", claims_unconditional
     if re.search(r"\b(?:minimum|at\s+least|no\s+less\s+than|whichever\s+is\s+(?:higher|more|greater))\b|>=|≥", t):
         return "ge", claims_unconditional
-    if re.search(r"\b(?:less\s+than|below|under)\b|<", t):
+    if re.search(r"\b(?:less\s+than|strictly\s+less\s+than|below)\b|\bunder\s+(?:\d|₹|one|two|three|four|five)|<", t):
         return "lt", claims_unconditional
     if re.search(r"\b(?:more\s+than|greater\s+than|exceeding|above)\b|>", t):
         return "gt", claims_unconditional

@@ -21,3 +21,6 @@ cache/
 
 # Raw binary documents if large
 data/raw/documents/*.tmp
+
+scratch/
+.venv/
