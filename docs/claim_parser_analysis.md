@@ -14,7 +14,7 @@ Phase 10 compares two structured claim parsers that map `(question, candidate_cl
 | `scheme` | 168 | 168 | 1.0000 |
 | `claimed_value` | 168 | 168 | 1.0000 |
 | `claimed_unit` | 168 | 168 | 1.0000 |
-| `numeric_operator` | 168 | 120 | 0.7143 |
+| `numeric_operator` | 168 | 162 | 0.9643 |
 | `crop_category` | 168 | 168 | 1.0000 |
 | `season` | 168 | 156 | 0.9286 |
 | `qualification` | 168 | 156 | 0.9286 |
@@ -23,7 +23,7 @@ Phase 10 compares two structured claim parsers that map `(question, candidate_cl
 
 ## 3. End-to-End Verification & Parser Comparison Summary
 
-- **Parser A (`DeterministicClaimParser`):** Status = `SUCCESS` | All-Fields Exact Match = `0.6250` | Schema-Valid Rate = `1.0000` | Unsupported-Inference Rate = `0.0000` | Mean Parse Latency = `1.6856 ms` | End-to-End Verdict Accuracy = `0.5714` | End-to-End Macro-F1 = `0.5529` | End-to-End False-Support Rate = `0.0263`.
+- **Parser A (`DeterministicClaimParser`):** Status = `SUCCESS` | All-Fields Exact Match = `0.8214` | Schema-Valid Rate = `1.0000` | Unsupported-Inference Rate = `0.0000` | Mean Parse Latency = `1.2574 ms` | End-to-End Verdict Accuracy = `0.9405` | End-to-End Macro-F1 = `0.9411` | End-to-End False-Support Rate = `0.0263`.
 - **Parser B (`LLMClaimParser`):** Status = `SKIPPED` | Reason = SKIPPED: Optional LLM provider not configured (FIELDGUARD_LLM_PROVIDER / FIELDGUARD_LLM_MODEL / FIELDGUARD_LLM_API_KEY not set in environment).
 
 ## 4. Safety Guarantees Verified in `tests/test_claim_parser_llm.py`
