@@ -1,0 +1,5 @@
+retriever_name,split,eligible_query_count,mrr,mean_latency_ms
+semantic,test,162,0.8093,227.0064
+lexical,test,162,0.7863,2.0433
+table,test,162,0.8443,14.9936
+hybrid,test,162,0.7867,17.1872

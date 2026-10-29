@@ -1,0 +1,31 @@
+retrieval:
+  corpus_version: "pmfby_corpus_v1.0"
+  top_k_values: [1, 3, 5, 10]
+  default_top_k: 5
+
+  semantic:
+    model_id: "sentence-transformers/all-MiniLM-L6-v2"
+    index_version: "minilm_l6_v2_exact_ip_v1"
+    max_length: 256
+    batch_size: 64
+    normalize_embeddings: true
+    device: "cpu"
+    cache_path: "cache/embeddings/minilm_l6_v2_corpus_cache.npz"
+
+  lexical:
+    method: "bm25"
+    k1: 1.5
+    b: 0.75
+    preserve_numbers_and_percentages: true
+
+  hybrid:
+    fusion_method: "rrf"
+    rrf_k: 60
+    lexical_weight: 0.50
+    semantic_weight: 0.50
+    table_boost: 0.15
+
+  table:
+    include_headers_in_text: true
+    preserve_provenance: true
+    exact_numeric_boost: 0.25

@@ -1,0 +1,17 @@
+parser:
+  schema_version: "1.0.0"
+  prompt_version: "v1.0"
+  deterministic:
+    strict_unit_detection: true
+    preserve_uncertainty: true
+  llm:
+    enabled_by_default: false
+    provider_env_var: "FIELDGUARD_LLM_PROVIDER"
+    model_env_var: "FIELDGUARD_LLM_MODEL"
+    endpoint_env_var: "FIELDGUARD_LLM_ENDPOINT"
+    api_key_env_var: "FIELDGUARD_LLM_API_KEY"
+    timeout_sec: 30
+    max_retries: 2
+    temperature: 0.0
+    max_tokens: 512
+    cache_path: "cache/parser/llm_parser_cache.json"

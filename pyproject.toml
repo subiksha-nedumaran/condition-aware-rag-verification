@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=65.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fieldguard"
+version = "0.1.0"
+description = "Condition-Aware Verification of Numerical Claims in Government-Scheme Question Answering Using RAG"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "FieldGuard Research Team" }
+]
+dependencies = [
+    "numpy>=1.26.0",
+    "pandas>=2.0.0",
+    "scikit-learn>=1.4.0",
+    "scipy>=1.11.0",
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+    "pyyaml>=6.0.0",
+    "requests>=2.31.0",
+    "tqdm>=4.66.0",
+    "safetensors>=0.4.0",
+    "tokenizers>=0.15.0",
+    "huggingface-hub>=0.20.0",
+    "pytest>=8.0.0",
+]
+
+[project.optional-dependencies]
+pdf = [
+    "pymupdf>=1.23.0",
+    "pdfplumber>=0.10.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"

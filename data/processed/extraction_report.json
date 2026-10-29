@@ -1,0 +1,213 @@
+{
+  "extraction_version": "1.0.0",
+  "extracted_at_utc": "2026-10-29T13:50:44Z",
+  "source_manifest_version": "1.0.0",
+  "total_documents_processed": 7,
+  "total_paragraph_chunks": 22,
+  "total_table_rows": 24,
+  "total_evidence_units": 46,
+  "documents": [
+    {
+      "document_id": "DOC_PMFBY_OG_2023",
+      "document_version": "2023_revamped_guidelines",
+      "verification_status": "trusted_official",
+      "file_format": "pdf",
+      "extraction_method": "pdf14_binary_stream_parser",
+      "physical_page_count": 7,
+      "paragraph_chunk_count": 10,
+      "table_row_count": 17,
+      "warnings_count": 0,
+      "warnings": [],
+      "pages": [
+        {
+          "physical_pdf_page": 1,
+          "printed_page": null,
+          "physical_equals_printed": false,
+          "paragraph_chunks": 2,
+          "tables_count": 0,
+          "table_rows_count": 0
+        },
+        {
+          "physical_pdf_page": 2,
+          "printed_page": "i",
+          "physical_equals_printed": false,
+          "paragraph_chunks": 1,
+          "tables_count": 0,
+          "table_rows_count": 0
+        },
+        {
+          "physical_pdf_page": 3,
+          "printed_page": "1",
+          "physical_equals_printed": false,
+          "paragraph_chunks": 2,
+          "tables_count": 0,
+          "table_rows_count": 0
+        },
+        {
+          "physical_pdf_page": 4,
+          "printed_page": "2",
+          "physical_equals_printed": false,
+          "paragraph_chunks": 2,
+          "tables_count": 1,
+          "table_rows_count": 3
+        },
+        {
+          "physical_pdf_page": 5,
+          "printed_page": "3",
+          "physical_equals_printed": false,
+          "paragraph_chunks": 1,
+          "tables_count": 1,
+          "table_rows_count": 4
+        },
+        {
+          "physical_pdf_page": 6,
+          "printed_page": "4",
+          "physical_equals_printed": false,
+          "paragraph_chunks": 0,
+          "tables_count": 1,
+          "table_rows_count": 6
+        },
+        {
+          "physical_pdf_page": 7,
+          "printed_page": "5",
+          "physical_equals_printed": false,
+          "paragraph_chunks": 2,
+          "tables_count": 1,
+          "table_rows_count": 4
+        }
+      ]
+    },
+    {
+      "document_id": "DOC_PMFBY_OG_2016_HIST",
+      "document_version": "2016_original_guidelines",
+      "verification_status": "trusted_official",
+      "file_format": "pdf",
+      "extraction_method": "pdf14_binary_stream_parser",
+      "physical_page_count": 1,
+      "paragraph_chunk_count": 1,
+      "table_row_count": 5,
+      "warnings_count": 0,
+      "warnings": [],
+      "pages": [
+        {
+          "physical_pdf_page": 1,
+          "printed_page": "1",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 1,
+          "tables_count": 1,
+          "table_rows_count": 5
+        }
+      ]
+    },
+    {
+      "document_id": "DOC_PMFBY_FAQ_OFFICIAL",
+      "document_version": "faq_undated",
+      "verification_status": "trusted_official",
+      "file_format": "pdf",
+      "extraction_method": "pdf14_binary_stream_parser",
+      "physical_page_count": 1,
+      "paragraph_chunk_count": 3,
+      "table_row_count": 0,
+      "warnings_count": 0,
+      "warnings": [],
+      "pages": [
+        {
+          "physical_pdf_page": 1,
+          "printed_page": "1",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 3,
+          "tables_count": 0,
+          "table_rows_count": 0
+        }
+      ]
+    },
+    {
+      "document_id": "DOC_PIB_2025_PRID2197713",
+      "document_version": "2025_12_12_pib_announcement",
+      "verification_status": "trusted_official",
+      "file_format": "pdf",
+      "extraction_method": "pdf14_binary_stream_parser",
+      "physical_page_count": 1,
+      "paragraph_chunk_count": 3,
+      "table_row_count": 0,
+      "warnings_count": 0,
+      "warnings": [],
+      "pages": [
+        {
+          "physical_pdf_page": 1,
+          "printed_page": "1",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 3,
+          "tables_count": 0,
+          "table_rows_count": 0
+        }
+      ]
+    },
+    {
+      "document_id": "DOC_PMFBY_PORTAL_OVERVIEW",
+      "document_version": "portal_live_snapshot",
+      "verification_status": "trusted_official",
+      "file_format": "html",
+      "extraction_method": "stdlib_html_section_parser",
+      "physical_page_count": 0,
+      "paragraph_chunk_count": 3,
+      "table_row_count": 0,
+      "warnings_count": 0,
+      "warnings": [],
+      "pages": [
+        {
+          "physical_pdf_page": null,
+          "printed_page": null,
+          "physical_equals_printed": true,
+          "paragraph_chunks": 3,
+          "tables_count": 0,
+          "table_rows_count": 0
+        }
+      ]
+    },
+    {
+      "document_id": "DOC_UNVERIFIED_PILOT_MEMO",
+      "document_version": "unverified_draft_v0",
+      "verification_status": "unverified_source",
+      "file_format": "pdf",
+      "extraction_method": "pdf14_binary_stream_parser",
+      "physical_page_count": 1,
+      "paragraph_chunk_count": 1,
+      "table_row_count": 0,
+      "warnings_count": 0,
+      "warnings": [],
+      "pages": [
+        {
+          "physical_pdf_page": 1,
+          "printed_page": "1",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 1,
+          "tables_count": 0,
+          "table_rows_count": 0
+        }
+      ]
+    },
+    {
+      "document_id": "DOC_PMFBY_STATE_ADDENDUM_CONFLICT",
+      "document_version": "2023_pilot_addendum",
+      "verification_status": "trusted_official",
+      "file_format": "pdf",
+      "extraction_method": "pdf14_binary_stream_parser",
+      "physical_page_count": 1,
+      "paragraph_chunk_count": 1,
+      "table_row_count": 2,
+      "warnings_count": 0,
+      "warnings": [],
+      "pages": [
+        {
+          "physical_pdf_page": 1,
+          "printed_page": "1",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 1,
+          "tables_count": 1,
+          "table_rows_count": 2
+        }
+      ]
+    }
+  ]
+}

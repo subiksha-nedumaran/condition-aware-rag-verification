@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.installed.cfg
+*.egg
+build/
+dist/
+
+# Environments and secrets
+.env
+.venv/
+venv/
+ENV/
+
+# Pytest and caches
+.pytest_cache/
+.cache/
+cache/
+
+# Raw binary documents if large
+data/raw/documents/*.tmp

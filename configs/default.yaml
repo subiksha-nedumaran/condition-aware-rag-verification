@@ -1,0 +1,27 @@
+project:
+  name: FieldGuard
+  version: "0.1.0"
+  random_seed: 42
+  domain: "PMFBY"
+  latest_verified_full_guidelines_version: "2023"
+  latest_verified_announcement_date: "2025-12-12"
+
+paths:
+  raw_documents_dir: "data/raw/documents"
+  manifests_dir: "data/manifests"
+  processed_dir: "data/processed"
+  benchmark_dir: "data/benchmark"
+  results_dir: "results"
+  cache_dir: "cache"
+
+verifier:
+  require_trusted_provenance: true
+  require_condition_matching: true
+  require_crop_category_matching: true
+  require_season_matching: true
+  require_qualification_matching: true
+  require_temporal_checks: true
+  require_evidence_sufficiency: true
+  numeric_rel_tol: 1e-6
+  numeric_abs_tol: 1e-6
+  default_top_k: 5

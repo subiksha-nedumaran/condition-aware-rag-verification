@@ -1,0 +1,63 @@
+{
+  "benchmark_version": "1.0.0",
+  "created_at_utc": "2026-10-29T14:45:41Z",
+  "domain": "PMFBY",
+  "total_claims": 240,
+  "total_claim_families": 60,
+  "total_evidence_units": 46,
+  "total_trusted_structured_rules": 33,
+  "total_rejected_untrusted_rules": 1,
+  "claims_sha256": "357bb74b8ccd0487d4506dfa8ddc0c1af4be9a19eb65d7e9a08053dd208d4012",
+  "evidence_sha256": "38549fef272704a09d834d88eb3c762bfbb5f423923da63f528086f3d4735e88",
+  "split_counts": {
+    "dev": 72,
+    "test": 168
+  },
+  "split_family_counts": {
+    "dev": 18,
+    "test": 42
+  },
+  "verdict_distribution": {
+    "SUPPORTED": 76,
+    "WRONG_CONTEXT": 58,
+    "CONTRADICTED": 61,
+    "UNVERIFIABLE": 45
+  },
+  "split_verdict_distribution": {
+    "dev": {
+      "SUPPORTED": 22,
+      "WRONG_CONTEXT": 20,
+      "CONTRADICTED": 18,
+      "UNVERIFIABLE": 12
+    },
+    "test": {
+      "SUPPORTED": 54,
+      "WRONG_CONTEXT": 38,
+      "CONTRADICTED": 43,
+      "UNVERIFIABLE": 33
+    }
+  },
+  "case_origin_distribution": {
+    "real_source_claim": 88,
+    "synthetic_perturbation": 152
+  },
+  "claim_type_distribution": {
+    "cat01_supported_exact": 64,
+    "cat03_wrong_crop_category": 21,
+    "cat04_wrong_season": 9,
+    "cat02_contradicted_value": 25,
+    "cat11_equivalent_numeric_representation": 12,
+    "cat05_qualification_violation": 16,
+    "cat12_wrong_unit_denominator_operator": 16,
+    "cat13_table_row_heading_mismatch": 8,
+    "cat07_inappropriate_historical_version": 12,
+    "cat08_unresolved_effective_date_or_current": 12,
+    "cat09_misleading_paragraph_distractor": 12,
+    "cat10_conflicting_official_sources": 8,
+    "cat15_irrelevant_lexical_similarity": 8,
+    "cat06_missing_corpus_evidence": 4,
+    "cat14_omitted_retrieval_evidence": 4,
+    "cat16_abstention_underspecified_claim": 9
+  },
+  "zero_family_leakage_verified": true
+}

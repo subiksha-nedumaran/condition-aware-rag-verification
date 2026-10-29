@@ -1,0 +1,5 @@
+method,overall_fsr,overall_num,overall_den,wrong_context_fsr,wrong_context_num,wrong_context_den,unverifiable_fsr,unverifiable_num,unverifiable_den,contradicted_fsr,contradicted_num,contradicted_den
+baseline_a_retrieval_only,0.2105,24,114,0.2368,9,38,0.4545,15,33,0.0,0,43
+baseline_b_numeric_only,0.1053,12,114,0.2368,9,38,0.0,0,33,0.0698,3,43
+baseline_c_numeric_basic_context,0.0789,9,114,0.1579,6,38,0.0,0,33,0.0698,3,43
+fieldguard_full,0.0,0,114,0.0,0,38,0.0,0,33,0.0,0,43

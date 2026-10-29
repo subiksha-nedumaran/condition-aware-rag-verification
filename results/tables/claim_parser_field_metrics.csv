@@ -1,0 +1,10 @@
+parser,status,field_name,n_claims,exact_match_count,exact_match_accuracy
+Parser_A_Deterministic_Rule_Based,SUCCESS,scheme,168,168,1.0
+Parser_A_Deterministic_Rule_Based,SUCCESS,claimed_value,168,168,1.0
+Parser_A_Deterministic_Rule_Based,SUCCESS,claimed_unit,168,168,1.0
+Parser_A_Deterministic_Rule_Based,SUCCESS,numeric_operator,168,120,0.7143
+Parser_A_Deterministic_Rule_Based,SUCCESS,crop_category,168,168,1.0
+Parser_A_Deterministic_Rule_Based,SUCCESS,season,168,156,0.9286
+Parser_A_Deterministic_Rule_Based,SUCCESS,qualification,168,156,0.9286
+Parser_A_Deterministic_Rule_Based,SUCCESS,requested_policy_version,168,168,1.0
+Parser_A_Deterministic_Rule_Based,SUCCESS,requested_effective_date,168,168,1.0

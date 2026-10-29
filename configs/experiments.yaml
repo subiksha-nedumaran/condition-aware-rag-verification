@@ -1,0 +1,29 @@
+experiments:
+  seed: 42
+  bootstrap_iterations: 1000
+  confidence_level: 0.95
+  group_by_key: "claim_family_id"
+  default_split: "test"
+  tuning_split: "dev"
+  retrieval_methods:
+    - "semantic"
+    - "lexical"
+    - "table"
+    - "hybrid"
+  verification_methods:
+    - "baseline_a_retrieval_only"
+    - "baseline_b_numeric_only"
+    - "baseline_c_numeric_basic_context"
+    - "fieldguard_full"
+  ablation_configurations:
+    - "full_fieldguard"
+    - "no_structured_condition_matching"
+    - "no_crop_category_matching"
+    - "no_season_matching"
+    - "no_qualification_matching"
+    - "no_temporal_checks"
+    - "no_provenance_validation"
+    - "no_evidence_sufficiency"
+    - "no_hybrid_retrieval"
+    - "baseline_numeric_only"
+    - "baseline_numeric_basic_context"
