@@ -12,6 +12,10 @@ tokenizers>=0.15.0
 huggingface-hub>=0.20.0
 pytest>=8.0.0
 streamlit>=1.30.0
+fastapi>=0.110.0
+uvicorn>=0.25.0
+python-multipart>=0.0.9
+httpx>=0.27.0
 pypdf>=5.0.0
 # Optional PDF extraction backends (pure-Python PDF 1.4 parser included as fallback):
 # pymupdf>=1.23.0

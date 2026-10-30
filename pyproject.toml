@@ -25,6 +25,8 @@ dependencies = [
     "tokenizers>=0.15.0",
     "huggingface-hub>=0.20.0",
     "pytest>=8.0.0",
+    "streamlit>=1.30.0",
+    "pypdf>=5.0.0",
 ]
 
 [project.optional-dependencies]

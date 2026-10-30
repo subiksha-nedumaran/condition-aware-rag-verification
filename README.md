@@ -1,16 +1,22 @@
-# FieldGuard: Condition-Aware Verification of Numerical Claims in Government-Scheme Question Answering Using RAG
+2# FieldGuard: Condition-Aware Verification of Numerical Claims in Government-Scheme Question Answering Using RAG
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests: 84 Passed](https://img.shields.io/badge/tests-84%20passed-brightgreen.svg)](tests/)
+[Automated tests](tests/)
 [![Accuracy: 94.05%](https://img.shields.io/badge/PMFBY%20Accuracy-94.05%25-green.svg)](results/metrics/)
-[![PM-KISAN Accuracy: 92.31%](https://img.shields.io/badge/PM--KISAN%20Accuracy-92.31%25-green.svg)](docs/STAGE2_RESULTS.md)
+[PM-KISAN saved held-out results: 42.50% accuracy](results/pm_kisan/tables/verification_comparison.csv)
 [![False Support Rate: 2.63%](https://img.shields.io/badge/FSR-2.63%25-brightgreen.svg)](results/metrics/)
 [![Schemes: 7 Flagship + Upload](https://img.shields.io/badge/schemes-7%20Flagship%20%2B%20Custom%20Upload-blueviolet.svg)](src/fieldguard/schemes/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-informational.svg)](LICENSE)
 
 **FieldGuard** is a research-oriented MSc Data Science capstone project developing and empirically evaluating a condition-aware numerical claim verification pipeline for Retrieval-Augmented Generation (RAG) in public policy question answering.
 
-The framework supports **7 major flagship Indian welfare schemes** alongside a **Dynamic Document Ingestion Engine** that parses arbitrary government policy documents (`.pdf` / `.txt`) for instant Question Answering with page citations and condition-aware numerical claim verification.
+The interface supports **7 major flagship Indian welfare schemes** alongside a **Dynamic Document Ingestion Engine** that parses arbitrary government policy documents (`.pdf` / `.txt`) for source-excerpt search with page citations and conservative document-only numerical comparisons.
+
+**Custom-upload verification boundary:** Uploaded files are unverified sources, and their dates remain unknown. Upload verdicts compare explicit numerical statements with retrieved passages, preserving their conditions; they do not establish official provenance or current policy applicability. In addition to complete single-number passage matches, a narrow mid-season expected-yield grammar recognizes equivalent threshold wording while checking the value, inequality, and normal-versus-threshold yield basis. Other unresolved paraphrases, omitted qualifications, tables, and multi-number passages return `UNVERIFIABLE`. Candidate numerical mentions are available for inspection but are never promoted to trusted policy rules. The curated-scheme benchmark scores below do not measure upload verification.
+
+Built-in numerical verification recognizes Indian-grouped rupee amounts, square metres, and horsepower. Linked PM-KISAN annual amounts, instalment amounts/counts, and month intervals are checked separately; all components must be supported for the complete claim to receive `SUPPORTED`. Qualitative statements without a quantity should use document excerpt search.
+
+Upload candidates use a separate schema with original text offsets, nullable upper/lower bounds, explicit comparison operators, and verbatim passage-level qualifiers. An operator is extracted only when it immediately precedes its numerical mention; unresolved semantics stay unknown. The document inspector exposes these records. Beneficiary, geography, and eligibility wording remains in the source passage rather than being replaced by invented generic conditions.
 
 ---
 
@@ -25,7 +31,7 @@ The framework supports **7 major flagship Indian welfare schemes** alongside a *
 | 🏠 **PMAY-G** | Rural Housing | **₹1,20,000** unit grant in plain areas; **₹1,30,000** in hilly/difficult areas; **25 sq. metres** minimum floor area. | Topographic area discrimination (`plains_areas` vs `hilly_areas`), minimum floor area vs plot area. |
 | ☀️ **PM-KUSUM** | Solar Agriculture | **60% total capital subsidy** (30% CFA + 30% State); standalone pumps up to **7.5 HP** capacity. | Component-B standalone pump scope, capacity ceiling (7.5 HP), CFA vs combined subsidy alignment. |
 | 💼 **PMMY** | Mudra Micro-Credit | **Shishu** (up to ₹50,000), **Kishore** (₹50,000–₹5,00,000), **Tarun** (₹5,00,000–₹10,00,000/₹20,00,000); collateral-free. | Tier threshold boundaries (e.g., claiming ₹1,00,000 under Shishu flagged as `CONTRADICTED`). |
-| 📂 **Upload Custom Document** | **Any Policy Document** | **Dynamic Ingestion (PDF / TXT)** with page-level chunking, table extraction, and rule induction. | Page-grounded citations, in-memory RRF hybrid retrieval, zero-shot condition-aware claim verification. |
+| 📂 **Upload Custom Document** | **Any Policy Document** | **Dynamic Ingestion (PDF / TXT)** with page-level chunking, table extraction, and rule induction. | Page-grounded excerpts, session-cached retrieval, and conservative document-only verification. |
 
 ---
 
@@ -58,14 +64,18 @@ Evaluated on the held-out PMFBY benchmark ($n = 168$ claims, 114 non-supported c
 
 | System / Baseline | Accuracy | Macro-F1 | False-Support Rate (FSR) | WRONG_CONTEXT FSR | UNVERIFIABLE FSR | Coverage | Verification Latency |
 |---|---|---|---|---|---|---|---|
-| **Baseline A: Retrieval Only** | 10.71% | 5.08% | 21.05% (24/114) | 23.68% | 45.45% | 14.29% | 0.90 ms |
-| **Baseline B: Numeric Only** | 44.64% | 32.35% | 81.58% (93/114) | 100.0% | 90.91% | 98.21% | 2.45 ms |
-| **Baseline C: Numeric + Basic Context** | 72.62% | 72.62% | 36.84% (42/114) | 23.68% | 27.27% | 87.50% | 1.28 ms |
-| **FieldGuard Full** | **94.05%** | **94.11%** | **2.63% (3/114)** | **0.00%** | **0.00%** | **82.14%** | **1.42 ms** |
+| **Baseline A: Retrieval Only** | 10.71% | 5.08% | 21.05% (24/114) | 23.68% | 45.45% | 14.29% | 1.573 ms |
+| **Baseline B: Numeric Only** | 44.64% | 32.35% | 81.58% (93/114) | 100.0% | 90.91% | 98.21% | 8.594 ms |
+| **Baseline C: Numeric + Basic Context** | 72.62% | 72.62% | 36.84% (42/114) | 23.68% | 27.27% | 87.50% | 4.386 ms |
+| **FieldGuard Full** | **94.05%** | **94.11%** | **2.63% (3/114)** | **0.00%** | **0.00%** | **82.14%** | **3.222 ms** |
+
+Timing values above come from the saved verification_results.csv run and exclude retrieval; FieldGuard’s saved mean end-to-end latency is 40.279 ms. Timings vary by hardware and cache state.
 
 *Primary Result:* FieldGuard reduces the false-support rate from **81.58%** in numeric-only and **36.84%** in basic context down to **2.63%**, while maintaining high classification accuracy (**94.05%**) and high answer coverage (**82.14%**).
 
 ---
+
+Evaluation scope: the saved PM-KISAN held-out run reports 42.50% accuracy and 15.15% false-support rate on 40 claims. The other five schemes have demonstration scenarios, not equivalent held-out evaluations. Upload behavior is covered by regression tests, not an accuracy benchmark. Run `python experiments/run_scheme_smoke.py` for the seven-scheme demonstration report; see [evaluation scope](docs/EVALUATION_SCOPE.md).
 
 ## 3. The Four Primary Verdicts
 
@@ -95,7 +105,7 @@ flowchart TD
 ```text
 FieldGuard_ag/
 ├── pyproject.toml              # Build backend, dependencies, and packaging metadata
-├── requirements.txt            # Pinned dependencies
+├── requirements.txt            # Dependency lower bounds
 ├── README.md                   # Comprehensive project documentation
 ├── app.py                      # Interactive Streamlit web interface
 ├── configs/                    # Experiment, parser, and retrieval configurations
@@ -139,7 +149,7 @@ FieldGuard_ag/
 │   ├── verifier.py             # FieldGuardVerifier 10-step verification engine
 │   ├── retrieval/              # Semantic, Lexical (BM25), Table, and Hybrid (RRF) retrievers
 │   └── evaluation/             # Metrics, bootstrap CIs, ablations, error analysis
-└── tests/                      # Automated test suite (51 tests, 100% passing)
+└── tests/                      # Automated tests (run pytest for current count)
 ```
 
 ---
@@ -152,14 +162,14 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 pip install -e .
+python -m fieldguard.model_setup --download
 ```
 
 ### Step 2: Run Automated Tests
 ```powershell
 python -m pytest -v
 ```
-All **84 tests pass (100%)** in ~15 seconds without external network dependencies or paid API keys.
-Includes 51 PMFBY tests, 13 PM-KISAN tests, 9 flagship/upload tests, and 11 end-to-end Streamlit UI tests.
+Run the command above for the current test count and timing. Tests need the embedding model provisioned first; subsequent runs use the local cache and require no paid API keys. See [reproducibility instructions](docs/reproducibility.md) for the pinned environment snapshot.
 
 ---
 
@@ -221,24 +231,41 @@ python -m fieldguard.cli evaluate errors --split test
 
 ---
 
-## 7. Interactive Demonstration UI & Live Browser Testing
+## 7. Next-Level Enterprise Web Platform & Live Browser Testing
 
-### Launch Interactive Streamlit Web App
-```powershell
-streamlit run app.py
-```
-Open **`http://localhost:8501`** in your browser. The platform provides:
-- **🏛️ 7 Flagship Schemes Corpus**: Instant switching between PMFBY, PM-KISAN, MGNREGS, PM-JAY, PMAY-G, PM-KUSUM, and PMMY with pre-loaded benchmark scenarios.
-- **📂 Upload Custom Policy Document (PDF / TXT)**:
-  - **Natural Language Policy Q&A**: Ask questions in plain English and receive fact-grounded answers with exact physical PDF page and passage citations.
-  - **Condition-Aware Verification**: Validate arbitrary numerical claims against uploaded rules with instant verdict badges (`SUPPORTED`, `WRONG_CONTEXT`, `CONTRADICTED`, `UNVERIFIABLE`).
-  - **Document Structure Inspector**: Inspect indexed passages, table rows, and induced candidate rules.
+FieldGuard features a modern, data-dense web platform powered by a decoupled **FastAPI** backend and an **Enterprise Single-Page Application (SPA)** built to UI/UX Pro Max specifications.
+
+### Launch Next-Level Web Application
+`powershell
+uvicorn fieldguard.server:app --host 0.0.0.0 --port 8501
+`
+Open **http://localhost:8501** in your browser. The platform includes:
+- **Verification Studio**:
+  - Live numerical claim verification with sub-100ms deterministic gates.
+  - **Side-by-Side Condition Alignment Diff**: Matrix comparing claimed vs. official evidence rules.
+  - **10-Step Deterministic Gates Checklist**: Granular pass/fail breakdown across units, scope, frequency, exclusions, temporal validity, and provenance.
+  - **Official Audit Certificate**: Cryptographically verifiable JSON certificate with SHA-256 provenance hash and print/PDF export.
+- **Grounded Policy Q&A**: Natural language inquiry with physical PDF page numbers and paragraph citations.
+- **Evaluation Benchmark Leaderboard**: Live empirical comparison of FieldGuard (94.05% accuracy, 2.63% FSR) vs. RAG baseline pipelines.
+- **Policy Rules & Corpus Explorer**: Searchable statutory rule table covering all 7 flagship schemes (PMFBY, PM-KISAN, MGNREGS, PM-JAY, PMAY-G, PM-KUSUM, PMMY).
+- **Dynamic Custom Document Ingestion Modal**: Drag-and-drop ingestion of arbitrary government scheme PDFs or TXT guidelines with live session banner and instant verification.
+- **Dark / Light Theme Engine**: Seamless glassmorphic visual presentation with typography pairing (Plus Jakarta Sans & Fira Code) and Lucide SVG icons.
+
+*(Legacy Streamlit demonstration remains available as a secondary fallback via streamlit run src/fieldguard/app.py)*
 
 ### Run Automated Live Browser Tests
-```powershell
+`powershell
 python scripts/test_live_browser.py
-```
-Uses **Playwright + Microsoft Edge** to launch a live browser instance, navigate to the running Streamlit server, simulate user interactions, upload test documents, verify verdicts, and save visual proof screenshots to `results/screenshots/`.
+`
+Uses **Playwright + Microsoft Edge** to launch a live browser instance, navigate through all four platform tabs, execute PMFBY and PM-KISAN verifications, test the audit certificate modal, execute grounded Q&A, upload custom policy documents, test theme toggling, and save full-resolution verification screenshots to 
+esults/screenshots/:
+- live_spa_pmfby_supported.png
+- live_spa_pm_kisan_supported.png
+- live_spa_audit_certificate.png
+- live_spa_policy_qa.png
+- live_spa_benchmark.png
+- live_spa_corpus_rules.png
+- live_spa_uploaded_doc_mode.png
 
 ---
 
