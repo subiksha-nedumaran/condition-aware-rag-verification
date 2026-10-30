@@ -1,0 +1,131 @@
+{
+  "extraction_version": "1.0.0",
+  "extracted_at_utc": "2026-10-29T21:19:21Z",
+  "source_manifest_version": "1.0.0",
+  "total_documents_processed": 4,
+  "total_paragraph_chunks": 10,
+  "total_table_rows": 13,
+  "total_evidence_units": 23,
+  "documents": [
+    {
+      "document_id": "DOC_PMKISAN_OG_2020",
+      "document_version": "revised_2020",
+      "verification_status": "trusted_official",
+      "file_format": "pdf",
+      "extraction_method": "pdf14_binary_stream_parser",
+      "physical_page_count": 5,
+      "paragraph_chunk_count": 6,
+      "table_row_count": 11,
+      "warnings_count": 0,
+      "warnings": [],
+      "pages": [
+        {
+          "physical_pdf_page": 1,
+          "printed_page": "1",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 1,
+          "tables_count": 0,
+          "table_rows_count": 0
+        },
+        {
+          "physical_pdf_page": 2,
+          "printed_page": "2",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 1,
+          "tables_count": 1,
+          "table_rows_count": 4
+        },
+        {
+          "physical_pdf_page": 3,
+          "printed_page": "3",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 2,
+          "tables_count": 0,
+          "table_rows_count": 0
+        },
+        {
+          "physical_pdf_page": 4,
+          "printed_page": "4",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 1,
+          "tables_count": 1,
+          "table_rows_count": 7
+        },
+        {
+          "physical_pdf_page": 5,
+          "printed_page": "5",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 1,
+          "tables_count": 0,
+          "table_rows_count": 0
+        }
+      ]
+    },
+    {
+      "document_id": "DOC_PMKISAN_OG_2019_HIST",
+      "document_version": "official",
+      "verification_status": "trusted_official",
+      "file_format": "pdf",
+      "extraction_method": "pdf14_binary_stream_parser",
+      "physical_page_count": 1,
+      "paragraph_chunk_count": 1,
+      "table_row_count": 2,
+      "warnings_count": 0,
+      "warnings": [],
+      "pages": [
+        {
+          "physical_pdf_page": 1,
+          "printed_page": "1",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 1,
+          "tables_count": 1,
+          "table_rows_count": 2
+        }
+      ]
+    },
+    {
+      "document_id": "DOC_PMKISAN_PIB_JUN2019",
+      "document_version": "official",
+      "verification_status": "trusted_official",
+      "file_format": "pdf",
+      "extraction_method": "pdf14_binary_stream_parser",
+      "physical_page_count": 1,
+      "paragraph_chunk_count": 1,
+      "table_row_count": 0,
+      "warnings_count": 0,
+      "warnings": [],
+      "pages": [
+        {
+          "physical_pdf_page": 1,
+          "printed_page": "1",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 1,
+          "tables_count": 0,
+          "table_rows_count": 0
+        }
+      ]
+    },
+    {
+      "document_id": "DOC_PMKISAN_FAQ_OFFICIAL",
+      "document_version": "official",
+      "verification_status": "trusted_official",
+      "file_format": "pdf",
+      "extraction_method": "pdf14_binary_stream_parser",
+      "physical_page_count": 1,
+      "paragraph_chunk_count": 2,
+      "table_row_count": 0,
+      "warnings_count": 0,
+      "warnings": [],
+      "pages": [
+        {
+          "physical_pdf_page": 1,
+          "printed_page": "1",
+          "physical_equals_printed": true,
+          "paragraph_chunks": 2,
+          "tables_count": 0,
+          "table_rows_count": 0
+        }
+      ]
+    }
+  ]
+}

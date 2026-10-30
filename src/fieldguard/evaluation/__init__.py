@@ -11,6 +11,7 @@ from fieldguard.evaluation.retrieval_metrics import (
     deduplicate_retrieved_ids,
     evaluate_single_query_retrieval,
 )
+from fieldguard.evaluation.runner import run_multi_scheme_experiment
 
 __all__ = [
     "get_ablation_configurations",
@@ -24,4 +25,5 @@ __all__ = [
     "compute_reciprocal_rank",
     "deduplicate_retrieved_ids",
     "evaluate_single_query_retrieval",
+    "run_multi_scheme_experiment",
 ]

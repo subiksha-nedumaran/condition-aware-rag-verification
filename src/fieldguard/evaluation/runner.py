@@ -1008,3 +1008,311 @@ def run_complete_evaluation_pipeline(project_root: Path | None = None) -> dict[s
         json.dump(master_log, f, indent=2, ensure_ascii=False)
 
     return master_log
+
+
+def _plot_multi_scheme_verification_figure(
+    rows: list[dict[str, Any]],
+    output_path: Path,
+    scheme_title: str = "PM-KISAN",
+) -> None:
+    labels = [
+        r["method_name"]
+        .replace("baseline_a_retrieval_only", "Baseline A\n(Retrieval-Only)")
+        .replace("baseline_b_numeric_only", "Baseline B\n(Numeric-Only)")
+        .replace("baseline_c_numeric_basic_context", "Baseline C\n(Basic Context)")
+        .replace("fieldguard_full", "FieldGuard\n(Condition-Aware)")
+        for r in rows
+    ]
+    acc = [r["accuracy"] * 100.0 for r in rows]
+    fsr = [r["false_support_rate"] * 100.0 for r in rows]
+    cov = [r["decision_coverage"] * 100.0 for r in rows]
+
+    x = np.arange(len(labels))
+    w = 0.25
+
+    fig, ax = plt.subplots(figsize=(9.2, 5.2), dpi=150)
+    b1 = ax.bar(x - w, acc, w, label="Accuracy (%)", color="#2b5c8f")
+    b2 = ax.bar(x, fsr, w, label="False Support Rate (%)", color="#d95f02")
+    b3 = ax.bar(x + w, cov, w, label="Decision Coverage (%)", color="#7570b3")
+
+    for bar in list(b1) + list(b2) + list(b3):
+        h = bar.get_height()
+        if h > 0.0:
+            ax.annotate(
+                f"{h:.1f}%",
+                xy=(bar.get_x() + bar.get_width() / 2, h),
+                xytext=(0, 3),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=8.5,
+            )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=9.5)
+    ax.set_ylim(0, 115)
+    ax.set_ylabel("Percentage (%)")
+    ax.set_title(f"FieldGuard Stage 2: {scheme_title} Multi-Scheme Verification Performance")
+    ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.legend(loc="upper right", fontsize=9.5)
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(str(output_path))
+    plt.close(fig)
+
+
+def _plot_multi_scheme_ablation_figure(
+    rows: list[dict[str, Any]],
+    output_path: Path,
+    scheme_title: str = "PM-KISAN",
+) -> None:
+    labels = [r["ablation_label"] for r in rows][::-1]
+    acc = [r["accuracy"] * 100.0 for r in rows][::-1]
+    fsr = [r["false_support_rate"] * 100.0 for r in rows][::-1]
+
+    y = np.arange(len(labels))
+    h = 0.35
+
+    fig, ax = plt.subplots(figsize=(10.0, 5.8), dpi=150)
+    ax.barh(y + h / 2, acc, h, label="Accuracy (%)", color="#2b5c8f")
+    ax.barh(y - h / 2, fsr, h, label="False Support Rate (%)", color="#d95f02")
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.set_xlim(0, 115)
+    ax.set_xlabel("Percentage (%)")
+    ax.set_title(f"FieldGuard Stage 2: {scheme_title} Component Ablation Study")
+    ax.grid(axis="x", linestyle="--", alpha=0.4)
+    ax.legend(loc="lower right", fontsize=9.5)
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(str(output_path))
+    plt.close(fig)
+
+
+def run_multi_scheme_experiment(
+    scheme: str = "pm_kisan",
+    split: str = "test",
+    project_root: Path | None = None,
+    bootstrap_iterations: int = 500,
+) -> dict[str, Any]:
+    """
+    Run the end-to-end multi-scheme evaluation pipeline on the specified government scheme.
+    Evaluates:
+      1. Retrieval Recall and MRR across semantic, lexical, table-aware, and hybrid retrieval.
+      2. Verification performance across Baselines A, B, C, and Full FieldGuard with cluster bootstrap CIs.
+      3. Component ablation study (IR, condition matching, entity scope, frequency, exclusions, temporal, sufficiency).
+    Saves tables, metrics, predictions, and figures to results/{scheme}/.
+    """
+    if project_root is None:
+        project_root = Path(__file__).resolve().parents[3]
+
+    clean_scheme = scheme.lower().replace("-", "_")
+    results_dir = project_root / "results" / clean_scheme
+    for sub in ("metrics", "tables", "predictions", "figures", "logs"):
+        (results_dir / sub).mkdir(parents=True, exist_ok=True)
+
+    # 1. Load appropriate scheme store and benchmark claims
+    if clean_scheme in ("pm_kisan", "pmkisan"):
+        from fieldguard.evidence_store import build_pm_kisan_evidence_store
+        from fieldguard.pm_kisan_benchmark import load_pm_kisan_benchmark_claims
+
+        store = build_pm_kisan_evidence_store(project_root)
+        claims = load_pm_kisan_benchmark_claims(project_root, split=split)
+    else:
+        store = build_default_evidence_store(project_root)
+        claims = load_benchmark_claims(project_root, split=split)
+
+    retrievers = build_all_retrievers(store)
+    corpus_ids = set(store.evidence_units.keys())
+
+    # 2. Retrieval Evaluation
+    retrieval_comparison_rows: list[dict[str, Any]] = []
+    for r_name in ("semantic", "lexical", "table", "hybrid"):
+        ret = retrievers[r_name]
+        eval_records = []
+        latencies_ms: list[float] = []
+
+        for clm in claims:
+            q_text = f"{clm.question} {clm.candidate_claim}".strip()
+            t0 = time.perf_counter()
+            ranked = ret.retrieve(q_text, top_k=10)
+            lat_ms = (time.perf_counter() - t0) * 1000.0
+            latencies_ms.append(lat_ms)
+
+            ret_ids = [it.evidence_id for it in ranked]
+            rec = evaluate_single_query_retrieval(
+                claim_id=clm.claim_id,
+                claim_family_id=clm.claim_family_id,
+                claim_type=clm.claim_type,
+                retriever_name=r_name,
+                retrieved_ids=ret_ids,
+                gold_evidence_ids=clm.gold_evidence_ids,
+                indexed_corpus_ids=corpus_ids,
+            )
+            eval_records.append(rec)
+
+        agg = aggregate_retrieval_metrics(eval_records, retriever_name=r_name)
+        mean_lat = float(np.mean(latencies_ms)) if latencies_ms else 0.0
+        retrieval_comparison_rows.append(
+            {
+                "scheme": clean_scheme,
+                "retriever_name": r_name,
+                "split": split,
+                "total_queries": agg["total_queries"],
+                "eligible_query_count": agg["eligible_query_count"],
+                "hits_at_1": agg["hits_at_1"],
+                "hits_at_3": agg["hits_at_3"],
+                "hits_at_5": agg["hits_at_5"],
+                "hits_at_10": agg.get("hits_at_10", 0),
+                "recall_at_1": agg["recall_at_1"],
+                "recall_at_3": agg["recall_at_3"],
+                "recall_at_5": agg["recall_at_5"],
+                "recall_at_10": agg["recall_at_10"],
+                "item_recall_at_5": agg["item_recall_at_5"],
+                "mrr": agg["mrr"],
+                "mean_latency_ms": round(mean_lat, 4),
+            }
+        )
+
+    with (results_dir / "tables" / "retrieval_comparison.csv").open("w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(retrieval_comparison_rows[0].keys()))
+        w.writeheader()
+        w.writerows(retrieval_comparison_rows)
+
+    _plot_retrieval_figure(retrieval_comparison_rows, results_dir / "figures" / "retrieval_comparison.png")
+
+    # 3. Verification Evaluation across Baselines A, B, C, D
+    configs = get_comparison_baseline_configs()
+    gold_verdicts = [c.gold_verdict for c in claims]
+    family_ids = [c.claim_family_id for c in claims]
+    summary_rows: list[dict[str, Any]] = []
+    preds_by_method: dict[str, list[dict[str, Any]]] = {}
+
+    for cfg in configs:
+        verifier = FieldGuardVerifier(evidence_store=store, config=cfg)
+        ret_engine = retrievers[cfg.retrieval_method]
+        m_preds_str: list[str] = []
+        m_preds_dicts: list[dict[str, Any]] = []
+        lats: list[float] = []
+
+        for clm in claims:
+            ret_items, ret_lat = _resolve_retrieved_items_for_claim(
+                claim=clm,
+                retriever=ret_engine,
+                store=store,
+                top_k=cfg.top_k,
+            )
+            pred = verifier.verify_claim(
+                claim_id=clm.claim_id,
+                question=clm.question,
+                candidate_claim=clm.candidate_claim,
+                retrieved_items=ret_items,
+                retrieval_method=cfg.retrieval_method,
+                retrieval_latency_ms=ret_lat,
+            )
+            m_preds_str.append(pred.predicted_verdict)
+            m_preds_dicts.append(pred.to_dict())
+            lats.append(pred.latency_ms)
+
+        preds_by_method[cfg.config_name] = m_preds_dicts
+
+        # Compute metrics
+        m = compute_verification_metrics(gold_verdicts, m_preds_str)
+        cis = compute_cluster_bootstrap_cis(
+            claim_family_ids=family_ids,
+            gold_verdicts=gold_verdicts,
+            predicted_verdicts=m_preds_str,
+            n_iterations=bootstrap_iterations,
+        )
+        row = {
+            "scheme": clean_scheme,
+            "method_name": cfg.config_name,
+            "split": split,
+            "sample_size": len(claims),
+            "accuracy": m["accuracy"],
+            "accuracy_ci_lower": cis["accuracy"]["ci_lower"],
+            "accuracy_ci_upper": cis["accuracy"]["ci_upper"],
+            "false_support_rate": m["false_support_rate"],
+            "fsr_ci_lower": cis["false_support_rate"]["ci_lower"],
+            "fsr_ci_upper": cis["false_support_rate"]["ci_upper"],
+            "decision_coverage": m["coverage"],
+            "macro_f1": m["macro_f1"],
+            "supported_f1": m["supported_f1"],
+            "contradicted_f1": m["contradicted_f1"],
+            "wrong_context_f1": m["wrong_context_f1"],
+            "unverifiable_f1": m["unverifiable_f1"],
+            "mean_latency_ms": round(float(np.mean(lats)), 4) if lats else 0.0,
+        }
+        summary_rows.append(row)
+
+    with (results_dir / "tables" / "verification_comparison.csv").open("w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(summary_rows[0].keys()))
+        w.writeheader()
+        w.writerows(summary_rows)
+
+    with (results_dir / "predictions" / "verification_predictions.jsonl").open("w", encoding="utf-8") as f:
+        for m_name, p_list in preds_by_method.items():
+            for p in p_list:
+                p_copy = dict(p)
+                p_copy["method_name"] = m_name
+                p_copy["scheme"] = clean_scheme
+                f.write(json.dumps(p_copy, ensure_ascii=False) + "\n")
+
+    _plot_multi_scheme_verification_figure(
+        summary_rows,
+        results_dir / "figures" / "verification_comparison.png",
+        scheme_title="PM-KISAN" if clean_scheme in ("pm_kisan", "pmkisan") else clean_scheme.upper(),
+    )
+
+    # 4. Multi-Scheme Ablation Study
+    ablation_configs = [
+        ("Full FieldGuard", VerifierConfig(config_name="fieldguard_full", mode="fieldguard")),
+        ("Ablation 1: Semantic IR Only", VerifierConfig(config_name="ablation_semantic_only", mode="fieldguard", retrieval_method="semantic")),
+        ("Ablation 2: Without Condition Matching", VerifierConfig(config_name="ablation_no_condition_matching", mode="fieldguard", enable_structured_condition_matching=False)),
+        ("Ablation 3: Without Entity Scope Matching", VerifierConfig(config_name="ablation_no_entity_scope", mode="fieldguard", enable_crop_category_matching=False)),
+        ("Ablation 4: Without Frequency Matching", VerifierConfig(config_name="ablation_no_frequency", mode="fieldguard", enable_season_matching=False)),
+        ("Ablation 5: Without Exclusion Matching", VerifierConfig(config_name="ablation_no_exclusions", mode="fieldguard", enable_qualification_matching=False)),
+        ("Ablation 6: Without Temporal Checks", VerifierConfig(config_name="ablation_no_temporal", mode="fieldguard", enable_temporal_checks=False)),
+        ("Ablation 7: Without Sufficiency Gate", VerifierConfig(config_name="ablation_no_sufficiency", mode="fieldguard", enable_evidence_sufficiency=False)),
+    ]
+    ablation_rows: list[dict[str, Any]] = []
+    for ab_label, ab_cfg in ablation_configs:
+        v = FieldGuardVerifier(evidence_store=store, config=ab_cfg)
+        ret_engine = retrievers[ab_cfg.retrieval_method]
+        ab_preds = []
+        for clm in claims:
+            r_items, r_lat = _resolve_retrieved_items_for_claim(clm, ret_engine, store, top_k=ab_cfg.top_k)
+            p = v.verify_claim(clm.claim_id, clm.question, clm.candidate_claim, r_items, ab_cfg.retrieval_method, r_lat)
+            ab_preds.append(p.predicted_verdict)
+        ab_m = compute_verification_metrics(gold_verdicts, ab_preds)
+        ablation_rows.append(
+            {
+                "ablation_label": ab_label,
+                "config_name": ab_cfg.config_name,
+                "accuracy": ab_m["accuracy"],
+                "false_support_rate": ab_m["false_support_rate"],
+                "decision_coverage": ab_m["coverage"],
+                "macro_f1": ab_m["macro_f1"],
+            }
+        )
+
+    with (results_dir / "tables" / "ablation_comparison.csv").open("w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(ablation_rows[0].keys()))
+        w.writeheader()
+        w.writerows(ablation_rows)
+
+    _plot_multi_scheme_ablation_figure(
+        ablation_rows,
+        results_dir / "figures" / "ablation_study.png",
+        scheme_title="PM-KISAN" if clean_scheme in ("pm_kisan", "pmkisan") else clean_scheme.upper(),
+    )
+
+    return {
+        "status": "SUCCESS",
+        "scheme": clean_scheme,
+        "split": split,
+        "retrieval": retrieval_comparison_rows,
+        "verification": summary_rows,
+        "ablation": ablation_rows,
+    }

@@ -48,6 +48,11 @@ class ParsedClaim:
     raw_question: str = ""
     raw_claim: str = ""
     parser_name: str = "deterministic_rule_parser_v1"
+    # Generalized multi-scheme condition attributes
+    beneficiary_type: str | None = None
+    entity_scope: str | None = None
+    frequency: str | None = None
+    exclusion_category: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -138,8 +143,88 @@ def _detect_rule_parameter(text: str) -> str | None:
         if re.search(r"farmer\s+premium|maximum\s+(?:insurance\s+charges|premium)", t):
             return "farmer_premium_rate"
         return "unrelated_operational_target"
+
+    # PM-KISAN rule parameters
+    if re.search(r"annual\s+(?:income\s+)?support|per\s+annum|per\s+year|yearly\s+benefit|\b6000\b", t) and (
+        re.search(r"pm-?kisan|kisan|income\s+support|farmer\s+fam", t) or not re.search(r"pmfby|premium|crop|bima", t)
+    ):
+        return "annual_income_support"
+    if re.search(r"instalment\s+amount|per\s+instalment|each\s+instalment|\b2000\b.*?(?:instalment|installment)", t):
+        return "instalment_amount"
+    if re.search(r"how\s+many\s+instalments|number\s+of\s+instalments|three\s+equal\s+instalments", t):
+        return "instalments_per_year"
+    if re.search(r"months?\s+per\s+instalment|four-?monthly|instalment\s+period", t):
+        return "instalment_period_months"
+    if re.search(r"pensioner.*?threshold|monthly\s+pension.*?10000|\b10000\b.*?pension", t):
+        return "statutory_exclusion_pension_threshold"
+    if re.search(r"landholding\s+(?:ceiling|limit|cap|eligibility)|\b2(?:\.0)?\s*(?:ha|hectares?)\b", t) and (
+        re.search(r"pm-?kisan|kisan|eligibility", t)
+    ):
+        return "landholding_eligibility_cap_ha"
+    if re.search(r"\bekyc\b|electronic\s+know\s+your\s+customer", t):
+        return "mandatory_ekyc_requirement"
+    if re.search(r"exclusion|statutory\s+exclusion|ineligible|disqualif", t) and re.search(r"pm-?kisan|kisan", t):
+        return "statutory_exclusion"
+
     if re.search(r"premium|insurance\s+charges", t):
         return "farmer_premium_rate"
+    return None
+
+
+def _detect_beneficiary_type(text: str) -> str | None:
+    t = text.lower()
+    if re.search(r"\btenant\b|\btenant\s+farmers?\b|\bsharecroppers?\b", t):
+        return "tenant_farmer"
+    if re.search(r"\bagricultural\s+labourers?\b|\bagricultural\s+laborers?\b|\blandless\b", t):
+        return "agricultural_laborer"
+    if re.search(r"small\s+and\s+marginal|smf|\bup\s+to\s+2\s*(?:ha|hectares?)\b", t):
+        return "small_and_marginal_farmers"
+    if re.search(r"medium\s+and\s+large|\bmore\s+than\s+2\s*(?:ha|hectares?)\b", t):
+        return "medium_and_large_farmers"
+    if re.search(r"institutional\s+landholders?", t):
+        return "institutional_landholder"
+    if re.search(r"constitutional\s+post", t):
+        return "constitutional_post_holder"
+    if re.search(r"public\s+representatives?|ministers?|members?\s+of\s+parliament|\bmps?\b|\bmlas?\b", t):
+        return "public_representative"
+    if re.search(r"government\s+employees?|govt\s+employees?|gazetted\s+officers?", t):
+        return "government_employee"
+    if re.search(r"pensioners?|pension", t):
+        return "pensioners"
+    if re.search(r"income\s+tax\s+payees?|taxpayers?|paid\s+income\s+tax", t):
+        return "income_tax_payee"
+    if re.search(r"registered\s+professionals?|doctors?|engineers?|lawyers?|chartered\s+accountants?|architects?", t):
+        return "registered_professional"
+    if re.search(r"all\s+landholding|landholding\s+farmers?|landholder\s+farmers?|cultivable\s+land|all\s+farmers?|farmer\s+famil(?:y|ies)", t):
+        return "all_landholding_farmers"
+    return None
+
+
+def _detect_exclusion_category(text: str) -> str | None:
+    t = text.lower()
+    if re.search(r"institutional\s+landholders?", t):
+        return "institutional_landholder"
+    if re.search(r"constitutional\s+post", t):
+        return "constitutional_post_holder"
+    if re.search(r"income\s+tax\s+payee|paid\s+income\s+tax", t):
+        return "income_tax_payee"
+    if re.search(r"pensioner|pension\s+of\s+rs\s*10000", t):
+        return "pensioner_ge_10000"
+    if re.search(r"government\s+employees?|govt\s+employees?|central/state\s+govt", t):
+        return "government_employee"
+    if re.search(r"registered\s+professionals?|doctors?|engineers?|lawyers?|chartered\s+accountants?|architects?", t):
+        return "registered_professional"
+    return None
+
+
+def _detect_frequency(text: str) -> str | None:
+    t = text.lower()
+    if re.search(r"per\s+instalment|each\s+instalment|four-?monthly", t):
+        return "per_instalment"
+    if re.search(r"per\s+annum|per\s+year|annual|yearly|full\s+financial\s+year", t):
+        return "annual"
+    if re.search(r"monthly|per\s+month", t):
+        return "monthly"
     return None
 
 
@@ -198,6 +283,18 @@ def _detect_crop_category(text: str, rule_param: str | None) -> str | None:
             return "irrigated_crops"
         return None
     if rule_param and rule_param not in ("farmer_premium_rate", "central_subsidy_actuarial_cap"):
+        if rule_param in (
+            "annual_income_support",
+            "instalment_amount",
+            "instalments_per_year",
+            "instalment_period_months",
+            "landholding_eligibility_cap_ha",
+            "mandatory_ekyc_requirement",
+            "statutory_exclusion",
+            "statutory_exclusion_pension_threshold",
+            "aadhaar_seeding_requirement",
+        ):
+            return None
         return "all_notified_crops"
     return None
 
@@ -269,6 +366,14 @@ def _detect_temporal_request(text: str) -> tuple[str | None, str | None]:
     ):
         return "2023_guidelines", req_date
 
+    # PM-KISAN policy eras
+    if re.search(r"february\s+2019|feb\s+2019|original\s+(?:launch\s+)?guidelines|initial\s+launch\s+era", t) and re.search(r"kisan|pm-?kisan", t):
+        return "2019_original_pmkisan", req_date
+    if re.search(r"\bpm-?kisan\b|kisan\s+samman\s+nidhi", t):
+        if re.search(r"2019\s+(?:launch\s+)?(?:guidelines|rules)", t) and not re.search(r"june|may|revised|expanded|all\s+landholding", t):
+            return "2019_original_pmkisan", req_date
+        return "pmkisan_current", req_date
+
     return "2023_guidelines", req_date
 
 
@@ -319,6 +424,48 @@ class DeterministicClaimParser:
         geography = _detect_geography(combined, rule_param)
         req_ver, req_date = _detect_temporal_request(combined)
 
+        beneficiary_type = _detect_beneficiary_type(combined)
+        exclusion_cat = _detect_exclusion_category(combined)
+        freq = _detect_frequency(combined)
+
+        # Zero-value exclusion or qualitative scheme claims without explicit digits
+        if num_expr.primary_value is None:
+            if exclusion_cat is not None or re.search(r"\b(?:statutorily\s+excluded|excluded|ineligible|disqualified)\b", combined, re.I):
+                if scheme == "PM_KISAN" or "kisan" in combined.lower() or exclusion_cat is not None:
+                    from fieldguard.numeric_normalizer import NormalizedNumericExpression
+                    num_expr = NormalizedNumericExpression(
+                        primary_value=0.0,
+                        primary_unit="rupees",
+                        canonical_value=0.0,
+                        canonical_unit="rupees",
+                        numeric_operator="eq",
+                        secondary_mentions=[],
+                        basis="per_eligible_farmer_family",
+                        qualifier=None,
+                        claims_unconditional_flat_rate=False,
+                        is_corrupted=False,
+                    )
+                    rule_param = rule_param or "statutory_exclusion"
+            elif (scheme == "PM_KISAN" or "kisan" in combined.lower()) and re.search(
+                r"all\s+landholding.*?eligible|eligible\s+regardless\s+of\s+land\s+size|medium\s+and\s+large.*?qualify",
+                combined,
+                re.I,
+            ):
+                from fieldguard.numeric_normalizer import NormalizedNumericExpression
+                num_expr = NormalizedNumericExpression(
+                    primary_value=6000.0,
+                    primary_unit="rupees",
+                    canonical_value=6000.0,
+                    canonical_unit="rupees",
+                    numeric_operator="eq",
+                    secondary_mentions=[],
+                    basis="per_eligible_farmer_family",
+                    qualifier=None,
+                    claims_unconditional_flat_rate=False,
+                    is_corrupted=False,
+                )
+                rule_param = rule_param or "annual_income_support"
+
         basis = num_expr.basis or normalize_claim_numerics(combined).basis
         qualifier = num_expr.qualifier or normalize_claim_numerics(combined).qualifier
         claims_uncond = (
@@ -358,6 +505,27 @@ class DeterministicClaimParser:
                 basis = "loanee_farmers_in_notified_area"
             elif rule_param == "wild_animal_addon_state_subsidy_share":
                 basis = "wild_animal_addon_cost"
+            # PM-KISAN bases
+            elif rule_param == "annual_income_support":
+                basis = "per_eligible_farmer_family"
+            elif rule_param == "instalment_amount":
+                basis = "per_instalment"
+            elif rule_param == "instalments_per_year":
+                basis = "per_financial_year"
+            elif rule_param == "instalment_period_months":
+                basis = "per_instalment_window"
+            elif rule_param == "landholding_eligibility_cap_ha":
+                basis = "combined_cultivable_landholding"
+            elif rule_param == "mandatory_ekyc_requirement":
+                basis = "all_registered_beneficiaries"
+            elif rule_param == "statutory_exclusion_pension_threshold":
+                basis = "monthly_pension"
+
+        if scheme == "PM_KISAN":
+            if crop_cat is None:
+                crop_cat = exclusion_cat or beneficiary_type or "all_landholding_farmers"
+            if season is None:
+                season = freq or "annual"
 
         uncertain: list[str] = []
         if scheme is None:
@@ -377,6 +545,11 @@ class DeterministicClaimParser:
             uncertain.append("crop_category")
         elif rule_param == "central_subsidy_share" and geography is None:
             uncertain.append("geography")
+        elif scheme == "PM_KISAN":
+            if rule_param in ("annual_income_support", "instalment_amount") and beneficiary_type is None and crop_cat is None:
+                uncertain.append("beneficiary_type")
+            elif rule_param == "statutory_exclusion" and exclusion_cat is None and beneficiary_type is None:
+                uncertain.append("exclusion_category")
 
         if num_expr.is_corrupted or num_expr.primary_value is None:
             status = "failed_malformed"
@@ -407,4 +580,8 @@ class DeterministicClaimParser:
             raw_question=question or "",
             raw_claim=candidate_claim or "",
             parser_name="deterministic_rule_parser_v1",
+            beneficiary_type=beneficiary_type,
+            entity_scope=beneficiary_type or crop_cat,
+            frequency=freq,
+            exclusion_category=exclusion_cat,
         )

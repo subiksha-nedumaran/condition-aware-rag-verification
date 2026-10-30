@@ -17,6 +17,7 @@ from fieldguard.condition_matcher import (
 from fieldguard.evidence_store import EvidenceStore
 from fieldguard.metadata import ExtractedEvidenceUnit
 from fieldguard.numeric_normalizer import compare_numeric_values, extract_all_numeric_mentions
+from fieldguard.schemes import get_scheme_adapter
 from fieldguard.verdicts import Verdict
 
 
@@ -375,21 +376,31 @@ class FieldGuardVerifier:
             missing_context: list[str] = []
             if parsed.scheme is None:
                 missing_context.append("scheme")
-            if parsed.rule_parameter == "farmer_premium_rate":
-                if self.config.enable_crop_category_matching and parsed.crop_category is None:
-                    missing_context.append("crop_category")
-                if (
-                    self.config.enable_season_matching
-                    and parsed.season is None
-                    and parsed.crop_category != "commercial_and_horticultural"
-                ):
-                    missing_context.append("season")
-            elif parsed.rule_parameter == "central_subsidy_actuarial_cap":
-                if self.config.enable_crop_category_matching and parsed.crop_category is None:
-                    missing_context.append("crop_category")
-            elif parsed.rule_parameter == "central_subsidy_share":
-                if parsed.geography is None:
-                    missing_context.append("geography")
+            else:
+                scheme_adapter = get_scheme_adapter(parsed.scheme)
+                if scheme_adapter:
+                    ctx_dict = {
+                        "crop_category": parsed.crop_category,
+                        "season": parsed.season,
+                        "geography": parsed.geography,
+                        "beneficiary_type": getattr(parsed, "beneficiary_type", None) or parsed.crop_category,
+                        "entity_scope": getattr(parsed, "entity_scope", None) or parsed.crop_category,
+                        "exclusion_category": getattr(parsed, "exclusion_category", None),
+                        "frequency": getattr(parsed, "frequency", None),
+                    }
+                    val_res = scheme_adapter.validate_claim_context(
+                        parsed.rule_parameter,
+                        ctx_dict,
+                        enable_switches={
+                            "enable_crop_category_matching": self.config.enable_crop_category_matching,
+                            "enable_season_matching": self.config.enable_season_matching,
+                        },
+                    )
+                    if not val_res.is_valid:
+                        missing_context.extend(val_res.missing_fields)
+                else:
+                    if parsed.rule_parameter is None:
+                        missing_context.append("rule_parameter")
 
             if missing_context:
                 v_str, abs_reason = self._finalize_verdict(

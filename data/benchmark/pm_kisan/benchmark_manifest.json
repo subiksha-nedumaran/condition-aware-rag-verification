@@ -1,0 +1,61 @@
+{
+  "benchmark_id": "PM_KISAN_BENCHMARK_V1",
+  "created_at_utc": "2026-10-30T02:00:44Z",
+  "scheme": "PM_KISAN",
+  "total_claims": 80,
+  "total_claim_families": 20,
+  "split_protocol": "cluster_stratified_by_claim_family",
+  "leakage_verification": "zero_claim_family_overlap_confirmed",
+  "splits": {
+    "dev": {
+      "count": 40,
+      "claim_families_count": 10,
+      "claim_families": [
+        "FAM_PMK_01",
+        "FAM_PMK_02",
+        "FAM_PMK_03",
+        "FAM_PMK_04",
+        "FAM_PMK_05",
+        "FAM_PMK_06",
+        "FAM_PMK_07",
+        "FAM_PMK_08",
+        "FAM_PMK_09",
+        "FAM_PMK_10"
+      ],
+      "verdict_distribution": {
+        "SUPPORTED": 10,
+        "CONTRADICTED": 10,
+        "WRONG_CONTEXT": 10,
+        "UNVERIFIABLE": 10
+      },
+      "sha256": "f03093f32e85ebf185d0cc4fb1514662bfd886c66749b7977be18bb646d817a0",
+      "file": "dev.jsonl"
+    },
+    "test": {
+      "count": 40,
+      "claim_families_count": 10,
+      "claim_families": [
+        "FAM_PMK_11",
+        "FAM_PMK_12",
+        "FAM_PMK_13",
+        "FAM_PMK_14",
+        "FAM_PMK_15",
+        "FAM_PMK_16",
+        "FAM_PMK_17",
+        "FAM_PMK_18",
+        "FAM_PMK_19",
+        "FAM_PMK_20"
+      ],
+      "verdict_distribution": {
+        "SUPPORTED": 7,
+        "CONTRADICTED": 7,
+        "WRONG_CONTEXT": 7,
+        "UNVERIFIABLE": 19
+      },
+      "sha256": "8b33a86424c933c27dffc85d1804f719c0029768fe71237284b6049b78062adc",
+      "file": "test.jsonl",
+      "freeze_status": "LOCKED_HELD_OUT_TEST_SET"
+    }
+  },
+  "all_claims_sha256": "1229b98a0207557d7a4cc1ca8c6a05ab6d538b7cc27b96d5283bc91cbd65a3a3"
+}

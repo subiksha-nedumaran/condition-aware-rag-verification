@@ -184,6 +184,38 @@ def resolve_temporal_applicability(
                 explanation="Rule matches verified PIB announcement PRID=2197713.",
             )
 
+    # Case 7: PM-KISAN policy versions
+    if rule.scheme == "PM_KISAN" or req_ver in ("pmkisan_current", "2019_original_pmkisan"):
+        if req_ver in ("pmkisan_current", "2023_guidelines", None):
+            if rule.policy_era in ("universal_landholder_2019_onwards", "revised_2020", "official"):
+                return TemporalResolutionResult(
+                    is_applicable=True,
+                    temporal_status="matched_pmkisan_universal_version",
+                    explanation="Rule is verified under the active universal landholder PM-KISAN guidelines (2019 onwards).",
+                )
+            if rule.policy_era == "original_launch_feb2019":
+                return TemporalResolutionResult(
+                    is_applicable=False,
+                    temporal_status="superseded_2019_historical_pmkisan_rule",
+                    explanation="Rule is from the superseded Feb 2019 PM-KISAN launch guidelines (capped at 2 ha).",
+                    requires_abstention=False,
+                    is_version_mismatch=True,
+                )
+        if req_ver == "2019_original_pmkisan":
+            if rule.policy_era == "original_launch_feb2019":
+                return TemporalResolutionResult(
+                    is_applicable=True,
+                    temporal_status="matched_2019_original_pmkisan",
+                    explanation="Rule matches the original February 2019 PM-KISAN launch guidelines (2 ha cap).",
+                )
+            return TemporalResolutionResult(
+                is_applicable=False,
+                temporal_status="policy_version_mismatch_expected_2019_pmkisan",
+                explanation=f"Claim asks for original 2019 guidelines, but rule is from era '{rule.policy_era}'.",
+                requires_abstention=False,
+                is_version_mismatch=True,
+            )
+
     return TemporalResolutionResult(
         is_applicable=False,
         temporal_status="unresolved_temporal_scope",

@@ -122,6 +122,12 @@ def normalize_unit_and_value(value: float, raw_unit: str) -> tuple[float, str, f
         return float(value), "cces", float(value), "cces"
     if u in ("ratio", "share"):
         return float(value), "percent", float(value), "percent"
+    if u in ("rupee", "rupees", "rs", "rs.", "inr", "₹"):
+        return float(value), "rupees", float(value), "rupees"
+    if u in ("month", "months", "mo", "mos"):
+        return float(value), "months", float(value), "months"
+    if u in ("instalment", "instalments", "installment", "installments"):
+        return float(value), "instalments", float(value), "instalments"
     return float(value), u or "dimensionless", float(value), u or "dimensionless"
 
 
@@ -283,16 +289,36 @@ def extract_all_numeric_mentions(text: str) -> list[NormalizedNumericMention]:
                 )
             )
 
-    # 2. Explicit numbers with units: e.g. 2.0%, 2%, 0.02%, 14 days, 2 weeks, 72 hours, 5 years, 2.0 hectares
+    matched_spans: list[tuple[int, int]] = []
+
+    # 2. Prefix currency: e.g. Rs 6000, Rs. 2000, ₹6000, INR 6000
+    for m_curr in re.finditer(r"\b(?:rs\.?|inr|₹)\s*(\d+(?:\.\d+)?)\b", t, flags=re.IGNORECASE):
+        raw_num = float(m_curr.group(1))
+        matched_spans.append(m_curr.span())
+        mentions.append(
+            NormalizedNumericMention(
+                raw_text=m_curr.group(0),
+                value=raw_num,
+                unit="rupees",
+                canonical_value=raw_num,
+                canonical_unit="rupees",
+            )
+        )
+
+    # 3. Explicit numbers with units: e.g. 2.0%, 2%, 0.02%, 14 days, 2 weeks, 72 hours, 5 years, 2.0 hectares, 6000 rupees, 4 months
     # Exclude 4-digit years like 2016, 2020, 2023, 2025, 2026 and helpline 14447 or PRID 2197713
     pattern = re.compile(
-        r"(?<![\w.])(\d+(?:\.\d+)?)\s*(%|(?:percent|per\s+cent|pct|weeks?|days?|hours?|hrs?|years?|yrs?|hectares?|ha|cces?)\b)",
+        r"(?<![\w.])(\d+(?:\.\d+)?)\s*(?:(?:equal|quarterly|four-monthly)\s+)?(%|(?:percent|per\s+cent|pct|weeks?|days?|hours?|hrs?|years?|yrs?|hectares?|ha|cces?|rupees?|rs\.?|inr|₹|months?|instalments?|installments?)\b)",
         flags=re.IGNORECASE,
     )
     for m in pattern.finditer(t):
+        span = m.span()
+        if any(s[0] <= span[0] < s[1] or s[0] < span[1] <= s[1] for s in matched_spans):
+            continue
         raw_num = float(m.group(1))
         raw_u = m.group(2)
         val, norm_u, can_val, can_u = normalize_unit_and_value(raw_num, raw_u)
+        matched_spans.append(span)
         mentions.append(
             NormalizedNumericMention(
                 raw_text=m.group(0),
@@ -303,11 +329,32 @@ def extract_all_numeric_mentions(text: str) -> list[NormalizedNumericMention]:
             )
         )
 
-    # 3. Spelled-out word numbers followed by unit: e.g. "two percent", "five percent", "two weeks", "three days"
+    # 3b. Standalone counts / dimensionless items (e.g. 3 subsidized solar water pumps)
+    dim_pattern = re.compile(
+        r"(?<![\w.])(\d+(?:\.\d+)?)\s*(?:subsidized\s+)?(?:solar\s+)?(?:water\s+)?(pumps?)\b",
+        flags=re.IGNORECASE,
+    )
+    for m in dim_pattern.finditer(t):
+        span = m.span()
+        if any(s[0] <= span[0] < s[1] or s[0] < span[1] <= s[1] for s in matched_spans):
+            continue
+        raw_num = float(m.group(1))
+        matched_spans.append(span)
+        mentions.append(
+            NormalizedNumericMention(
+                raw_text=m.group(0),
+                value=raw_num,
+                unit="dimensionless",
+                canonical_value=raw_num,
+                canonical_unit="dimensionless",
+            )
+        )
+
+    # 4. Spelled-out word numbers followed by unit: e.g. "two percent", "five percent", "two weeks", "three days", "six thousand rupees"
     t_lower = t.lower()
     for word_str, num_val in sorted(WORD_TO_NUMBER.items(), key=lambda kv: -len(kv[0])):
         w_pat = re.compile(
-            rf"\b{re.escape(word_str)}\s+(percent|per\s+cent|weeks?|days?|hours?|years?)\b",
+            rf"\b{re.escape(word_str)}\s+(percent|per\s+cent|weeks?|days?|hours?|years?|rupees?|months?|instalments?|installments?)\b",
             flags=re.IGNORECASE,
         )
         for wm in w_pat.finditer(t_lower):

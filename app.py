@@ -1,7 +1,7 @@
 """FieldGuard Interactive Demonstration Interface.
 
 Streamlit application providing condition-aware numerical claim verification
-for government-scheme question answering (Section 24).
+for multi-scheme government policy question answering (PMFBY and PM-KISAN).
 Calls the exact same underlying FieldGuardVerifier backend as the CLI and evaluation runner.
 """
 
@@ -22,22 +22,28 @@ except ImportError:
     print("Streamlit is not installed in the active environment. Install with: pip install streamlit")
     sys.exit(0)
 
-from fieldguard.evidence_store import build_default_evidence_store
+from fieldguard.evidence_store import (
+    build_default_evidence_store,
+    build_pm_kisan_evidence_store,
+)
 from fieldguard.evaluation.runner import build_all_retrievers
 from fieldguard.verifier import FieldGuardVerifier, VerifierConfig
 from fieldguard.verdicts import Verdict
 
 
 @st.cache_resource
-def load_backend():
-    store = build_default_evidence_store(PROJECT_ROOT)
+def load_backend(scheme_key: str):
+    if scheme_key == "PM_KISAN":
+        store = build_pm_kisan_evidence_store(PROJECT_ROOT)
+    else:
+        store = build_default_evidence_store(PROJECT_ROOT)
     retrievers = build_all_retrievers(store)
     verifier = FieldGuardVerifier(evidence_store=store)
     return store, retrievers, verifier
 
 
 st.set_page_config(
-    page_title="FieldGuard — Numerical Claim Verification",
+    page_title="FieldGuard — Multi-Scheme Numerical Claim Verification",
     page_icon="🛡️",
     layout="wide",
 )
@@ -45,9 +51,7 @@ st.set_page_config(
 st.title("🛡️ FieldGuard")
 st.subheader("Condition-Aware Verification of Numerical Claims in Government-Scheme Question Answering")
 
-store, retrievers, verifier = load_backend()
-
-SAMPLE_CLAIMS = {
+PMFBY_SAMPLE_CLAIMS = {
     "1. Supported: Kharif Food Grains Farmer Premium (2.0%)": (
         "Under the 2023 PMFBY operational guidelines, what is the maximum farmer premium for Kharif food grains?",
         "Under the 2023 PMFBY operational guidelines, the maximum farmer premium for Kharif food grains is 2.0% of Sum Insured.",
@@ -70,23 +74,78 @@ SAMPLE_CLAIMS = {
     ),
 }
 
+PMKISAN_SAMPLE_CLAIMS = {
+    "1. Supported: Annual Income Support (Rs 6,000 / year)": (
+        "Under PM-KISAN, what is the annual financial assistance provided to eligible farmer families?",
+        "Under PM-KISAN, eligible landholding farmer families receive an annual financial benefit of Rs 6000.",
+    ),
+    "2. Wrong Context: Rs 6,000 Claimed Per Instalment (Frequency Distractor)": (
+        "Under PM-KISAN, what is the financial assistance provided per four-monthly instalment?",
+        "Under PM-KISAN, eligible farmers receive Rs 6000 per instalment.",
+    ),
+    "3. Wrong Context: Tenant Farmers Claiming Rs 6,000 (Ineligible Beneficiary)": (
+        "Under PM-KISAN, what is the annual financial support provided to tenant farmers?",
+        "Under PM-KISAN, tenant farmers receive an annual income support of Rs 6000.",
+    ),
+    "4. Supported: Statutory Exclusion of Institutional Landholders (0 INR Benefit)": (
+        "Are institutional landholders eligible to receive benefits under PM-KISAN?",
+        "All institutional landholders are statutorily excluded (Rs 0 benefit) from PM-KISAN.",
+    ),
+    "5. Contradicted: Claiming 4 Quarterly Instalments per Year instead of 3": (
+        "How many instalments are paid in a financial year under PM-KISAN?",
+        "Under PM-KISAN, the financial benefit is disbursed in 4 quarterly instalments per year.",
+    ),
+    "6. Supported: Mandatory 100% eKYC and Aadhaar DBT": (
+        "What is the eKYC compliance requirement for registered farmers under PM-KISAN?",
+        "Under PM-KISAN, eKYC completion is 100 percent mandatory for all registered farmers.",
+    ),
+}
+
 with st.sidebar:
+    st.header("🏛️ Scheme Selection")
+    scheme_choice = st.radio(
+        "Select Scheme Domain:",
+        ["PMFBY (Crop Insurance)", "PM-KISAN (Direct Income Support)"],
+        index=0,
+    )
+    scheme_key = "PM_KISAN" if "PM-KISAN" in scheme_choice else "PMFBY"
+
+    store, retrievers, verifier = load_backend(scheme_key)
+
     st.header("⚙️ Configuration")
-    selected_sample = st.selectbox("Choose a Benchmark Scenario:", ["Custom Claim"] + list(SAMPLE_CLAIMS.keys()))
+    sample_options = (
+        PMKISAN_SAMPLE_CLAIMS if scheme_key == "PM_KISAN" else PMFBY_SAMPLE_CLAIMS
+    )
+    selected_sample = st.selectbox(
+        "Choose a Benchmark Scenario:", ["Custom Claim"] + list(sample_options.keys())
+    )
     retrieval_method = st.selectbox("Retrieval Method:", ["hybrid", "semantic", "lexical", "table"])
     top_k = st.slider("Top-K Evidence Items:", min_value=1, max_value=10, value=5)
     st.markdown("---")
-    st.markdown("**Corpus Status:**")
+    st.markdown("**Active Corpus Status:**")
+    st.markdown(f"- Scheme: **{scheme_key}**")
     st.markdown(f"- Indexed Units: **{len(store.evidence_units)}**")
     st.markdown(f"- Verified Rules: **{len(store.trusted_rules)}**")
-    st.markdown("- Official Sources: **PMFBY Operational Guidelines (2023 & 2016), PIB PRID=2197713**")
+    if scheme_key == "PM_KISAN":
+        st.markdown("- Official Sources: **PM-KISAN Guidelines (2020 & 2019 Hist), PIB June 2019, Official Portal FAQ**")
+    else:
+        st.markdown("- Official Sources: **PMFBY Operational Guidelines (2023 & 2016), PIB PRID=2197713**")
 
 default_q, default_c = "", ""
 if selected_sample != "Custom Claim":
-    default_q, default_c = SAMPLE_CLAIMS[selected_sample]
+    default_q, default_c = sample_options[selected_sample]
 
-question_input = st.text_input("User Question (Context):", value=default_q, placeholder="e.g. For Kharif food grains under PMFBY, what is the maximum farmer premium?")
-claim_input = st.text_area("Candidate Numerical Claim to Verify:", value=default_c, height=100, placeholder="e.g. Under the 2023 PMFBY operational guidelines, the maximum farmer premium for Kharif food grains is 2.0% of Sum Insured.")
+question_input = st.text_input(
+    "User Question (Context):",
+    value=default_q,
+    placeholder="e.g. Under PM-KISAN, what is the annual financial assistance provided to eligible farmer families?",
+)
+claim_input = st.text_area(
+    "Candidate Numerical Claim to Verify:",
+    value=default_c,
+    height=100,
+    placeholder="e.g. Under PM-KISAN, eligible landholding farmer families receive an annual financial benefit of Rs 6000.",
+)
 
 if st.button("🔍 Verify Claim", type="primary"):
     if not claim_input.strip():
@@ -112,7 +171,7 @@ if st.button("🔍 Verify Claim", type="primary"):
         if verdict == "SUPPORTED":
             st.success(f"### Verdict: **{verdict}** ✅")
         elif verdict == "WRONG_CONTEXT":
-            st.warning(f"### Verdict: **{verdict}** ⚠️ (Number occurs in document, but applies to a different context)")
+            st.warning(f"### Verdict: **{verdict}** ⚠️ (Number occurs in document, but applies to a different context/condition)")
         elif verdict == "CONTRADICTED":
             st.error(f"### Verdict: **{verdict}** ❌ (Contradicted under matching context)")
         else:
@@ -132,25 +191,25 @@ if st.button("🔍 Verify Claim", type="primary"):
         checks_data = []
         if verdict == "SUPPORTED":
             checks_data = [
-                ("Numeric & Unit Agreement", "PASSED", "Claimed value matches applicable policy rate"),
-                ("Crop Category Agreement", "PASSED", "Rule applies to requested crop category"),
-                ("Season Agreement", "PASSED", "Rule applies to requested season"),
-                ("Qualification & Basis", "PASSED", "Qualifier ('whichever is less') respected"),
-                ("Temporal Applicability", "PASSED", "Source document is active and applicable"),
-                ("Source Authority", "PASSED", "Official government guidelines / PIB release"),
+                ("Numeric & Unit Agreement", "PASSED", "Claimed value matches applicable policy rate/threshold"),
+                ("Beneficiary / Entity Scope", "PASSED", "Rule applies to requested entity / beneficiary scope"),
+                ("Frequency / Season Agreement", "PASSED", "Rule applies to requested frequency or season"),
+                ("Qualification & Exclusions", "PASSED", "Statutory exclusion and qualifier constraints verified"),
+                ("Temporal Applicability", "PASSED", "Source document is active and applicable to requested era"),
+                ("Source Authority", "PASSED", "Official government guidelines / verified gazette notification"),
             ]
         elif verdict == "WRONG_CONTEXT":
             checks_data = [
-                ("Numeric & Unit Agreement", "PASSED", "Claimed number exists in verified corpus"),
-                ("Crop Category Agreement", "FAILED" if any("crop" in m for m in pred.context_mismatch) else "PASSED", "Claimed category differs from rule category"),
-                ("Season Agreement", "FAILED" if any("season" in m for m in pred.context_mismatch) else "PASSED", "Claimed season differs from rule season"),
-                ("Temporal Applicability", "FAILED" if any("temporal" in m or "version" in m for m in pred.context_mismatch) else "PASSED", "Policy version mismatch"),
-                ("Source Authority", "PASSED", "Official government guidelines"),
+                ("Numeric & Unit Agreement", "PASSED", "Claimed number exists in verified official corpus"),
+                ("Entity Scope / Category", "FAILED" if any(k in m for m in pred.context_mismatch for k in ("crop", "beneficiary", "entity", "ineligible")) else "PASSED", "Claimed category differs from rule applicability"),
+                ("Frequency / Periodicity", "FAILED" if any("season" in m or "frequency" in m for m in pred.context_mismatch) else "PASSED", "Claimed frequency differs from rule periodicity"),
+                ("Temporal Applicability", "FAILED" if any("temporal" in m or "version" in m for m in pred.context_mismatch) else "PASSED", "Policy era or version mismatch"),
+                ("Source Authority", "PASSED", "Official government document"),
             ]
         elif verdict == "CONTRADICTED":
             checks_data = [
                 ("Numeric & Unit Agreement", "FAILED", "Value, operator, or qualification directly contradicts evidence"),
-                ("Context Matching", "PASSED", "Evaluated under the exact matching crop category & season"),
+                ("Context Matching", "PASSED", "Evaluated under the matching entity scope and temporal window"),
                 ("Source Authority", "PASSED", "Official government guidelines"),
             ]
         else:
@@ -174,4 +233,3 @@ if st.button("🔍 Verify Claim", type="primary"):
             with st.expander(f"{header_icon} [Rank {idx + 1}] {item['evidence_id']} — Source: {item['source_document_id']} (Page {item.get('physical_pdf_page', 'N/A')})"):
                 st.markdown(f"**Score:** `{round(item.get('retrieval_score', 0.0), 4)}` | **Type:** `{item.get('evidence_type', 'chunk')}`")
                 st.markdown(f"```text\n{item.get('text', '')}\n```")
-

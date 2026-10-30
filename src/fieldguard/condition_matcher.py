@@ -12,6 +12,7 @@ from fieldguard.numeric_normalizer import (
     compare_numeric_values,
     extract_all_numeric_mentions,
 )
+from fieldguard.schemes import get_scheme_adapter
 from fieldguard.temporal_resolver import (
     TemporalResolutionResult,
     resolve_temporal_applicability,
@@ -236,35 +237,73 @@ def evaluate_rule_against_claim(
 
         param_ok = claim.rule_parameter is None or (claim.rule_parameter == rule.rule_parameter)
         if not param_ok:
-            context_mismatch_dims.append(
-                f"parameter_mismatch(claimed={claim.rule_parameter}, rule={rule.rule_parameter})"
+            if {claim.rule_parameter, rule.rule_parameter} == {"statutory_exclusion", "annual_income_support"}:
+                param_ok = True
+            else:
+                context_mismatch_dims.append(
+                    f"parameter_mismatch(claimed={claim.rule_parameter}, rule={rule.rule_parameter})"
+                )
+
+        scheme_adapter = get_scheme_adapter(rule.scheme)
+        if scheme_adapter and rule.scheme != "PMFBY":
+            claimed_ctx = {
+                "crop_category": claim.crop_category,
+                "season": claim.season,
+                "geography": claim.geography,
+                "beneficiary_type": getattr(claim, "beneficiary_type", None) or claim.crop_category,
+                "entity_scope": getattr(claim, "entity_scope", None) or claim.crop_category,
+                "frequency": getattr(claim, "frequency", None) or claim.season,
+                "exclusion_category": getattr(claim, "exclusion_category", None),
+            }
+            rule_ctx = {
+                "crop_category": rule.crop_category,
+                "season": rule.season,
+                "geography": rule.geography,
+                "beneficiary_type": getattr(rule, "entity_scope", None) or rule.crop_category,
+                "entity_scope": getattr(rule, "entity_scope", None) or rule.crop_category,
+                "frequency": getattr(rule, "frequency", None) or rule.season,
+                "exclusions": getattr(rule, "exclusions", []),
+            }
+            adapter_ok, adapter_reasons = scheme_adapter.match_conditions(
+                claimed_ctx,
+                rule_ctx,
+                rule.rule_parameter,
+                enable_switches={
+                    "enable_crop_category_matching": config.enable_crop_category_matching,
+                    "enable_season_matching": config.enable_season_matching,
+                },
             )
+            crop_ok = adapter_ok
+            season_ok = True
+            geo_ok = True
+            if not adapter_ok:
+                context_mismatch_dims.extend(adapter_reasons)
+        else:
+            crop_ok, crop_err = _match_crop_category(
+                claim.crop_category,
+                rule.crop_category,
+                enable_crop_category_matching=config.enable_crop_category_matching,
+            )
+            if not crop_ok and crop_err:
+                context_mismatch_dims.append(crop_err)
 
-        crop_ok, crop_err = _match_crop_category(
-            claim.crop_category,
-            rule.crop_category,
-            enable_crop_category_matching=config.enable_crop_category_matching,
-        )
-        if not crop_ok and crop_err:
-            context_mismatch_dims.append(crop_err)
+            season_ok, season_err = _match_season(
+                claim.season,
+                rule.season,
+                claim.crop_category,
+                rule.crop_category,
+                enable_season_matching=config.enable_season_matching,
+            )
+            if not season_ok and season_err:
+                context_mismatch_dims.append(season_err)
 
-        season_ok, season_err = _match_season(
-            claim.season,
-            rule.season,
-            claim.crop_category,
-            rule.crop_category,
-            enable_season_matching=config.enable_season_matching,
-        )
-        if not season_ok and season_err:
-            context_mismatch_dims.append(season_err)
-
-        geo_ok, geo_err = _match_geography(
-            claim.geography,
-            rule.geography,
-            enable_structured_condition_matching=config.enable_structured_condition_matching,
-        )
-        if not geo_ok and geo_err:
-            context_mismatch_dims.append(geo_err)
+            geo_ok, geo_err = _match_geography(
+                claim.geography,
+                rule.geography,
+                enable_structured_condition_matching=config.enable_structured_condition_matching,
+            )
+            if not geo_ok and geo_err:
+                context_mismatch_dims.append(geo_err)
 
     # Special rule: if rule_season is 'annual' (e.g. commercial & horticultural 5%) and
     # claim asks for 'kharif' or 'rabi' 'food_grain_and_oilseed', crop_ok is False when crop matching is enabled.

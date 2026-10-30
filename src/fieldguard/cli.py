@@ -30,8 +30,12 @@ from fieldguard.evaluation.runner import (
     build_all_retrievers,
     run_retrieval_experiment,
     run_verification_experiment,
+    run_multi_scheme_experiment,
 )
-from fieldguard.evidence_store import build_default_evidence_store
+from fieldguard.evidence_store import (
+    build_default_evidence_store,
+    build_pm_kisan_evidence_store,
+)
 from fieldguard.source_manifest import load_source_manifest, validate_source_manifest
 from fieldguard.verifier import FieldGuardVerifier, VerifierConfig
 
@@ -109,7 +113,11 @@ def cmd_index_build(args: argparse.Namespace) -> int:
 
 def cmd_retrieve(args: argparse.Namespace) -> int:
     root = _get_project_root()
-    store = build_default_evidence_store(root)
+    scheme = getattr(args, "scheme", "pmfby") or "pmfby"
+    if scheme.lower() in ("pm_kisan", "pmkisan"):
+        store = build_pm_kisan_evidence_store(root)
+    else:
+        store = build_default_evidence_store(root)
     retrievers = build_all_retrievers(store)
 
     retriever = retrievers.get(args.method)
@@ -149,7 +157,11 @@ def cmd_retrieve(args: argparse.Namespace) -> int:
 
 def cmd_verify(args: argparse.Namespace) -> int:
     root = _get_project_root()
-    store = build_default_evidence_store(root)
+    scheme = getattr(args, "scheme", "pmfby") or "pmfby"
+    if scheme.lower() in ("pm_kisan", "pmkisan"):
+        store = build_pm_kisan_evidence_store(root)
+    else:
+        store = build_default_evidence_store(root)
     retrievers = build_all_retrievers(store)
 
     retriever = retrievers.get(args.method, retrievers["hybrid"])
@@ -245,6 +257,24 @@ def cmd_verify(args: argparse.Namespace) -> int:
 
 def cmd_evaluate(args: argparse.Namespace) -> int:
     root = _get_project_root()
+    scheme = getattr(args, "scheme", "pmfby") or "pmfby"
+    if scheme.lower() in ("pm_kisan", "pmkisan"):
+        print(f"=== Evaluating Multi-Scheme Verification on PM-KISAN (Split: {args.split}) ===")
+        summary = run_multi_scheme_experiment("pm_kisan", split=args.split, bootstrap_iterations=args.bootstrap_iterations)
+        print(
+            json.dumps(
+                {
+                    "status": summary["status"],
+                    "scheme": summary["scheme"],
+                    "split": summary["split"],
+                    "verification": summary["verification"],
+                    "ablation": summary["ablation"],
+                },
+                indent=2,
+            )
+        )
+        return 0
+
     target = args.eval_target
 
     if target == "retrieval":
@@ -349,6 +379,7 @@ def main() -> None:
     p_retrieve = subparsers.add_parser("retrieve", help="Retrieve evidence for a query")
     p_retrieve.add_argument("--query", "-q", type=str, required=True, help="Query text")
     p_retrieve.add_argument("--method", "-m", type=str, default="hybrid", choices=["hybrid", "semantic", "lexical", "table"])
+    p_retrieve.add_argument("--scheme", "-s", type=str, default="pmfby", choices=["pmfby", "pm_kisan", "pmkisan"], help="Scheme domain")
     p_retrieve.add_argument("--top-k", "-k", type=int, default=5, help="Number of retrieved results")
     p_retrieve.add_argument("--json", action="store_true", help="Output raw JSON")
 
@@ -357,6 +388,7 @@ def main() -> None:
     p_verify.add_argument("--claim", "-c", type=str, required=True, help="Numerical claim to verify")
     p_verify.add_argument("--question", type=str, default=None, help="Optional natural-language question")
     p_verify.add_argument("--claim-id", type=str, default=None, help="Optional claim ID")
+    p_verify.add_argument("--scheme", "-s", type=str, default="pmfby", choices=["pmfby", "pm_kisan", "pmkisan"], help="Scheme domain")
     p_verify.add_argument("--method", "-m", type=str, default="hybrid", choices=["hybrid", "semantic", "lexical", "table"])
     p_verify.add_argument("--top-k", "-k", type=int, default=5, help="Number of evidence chunks to retrieve")
     p_verify.add_argument("--json", action="store_true", help="Output raw JSON")
@@ -368,6 +400,7 @@ def main() -> None:
         choices=["retrieval", "verification", "ablations", "errors"],
         help="Evaluation experiment to run",
     )
+    p_eval.add_argument("--scheme", "-s", type=str, default="pmfby", choices=["pmfby", "pm_kisan", "pmkisan"], help="Scheme domain")
     p_eval.add_argument("--split", type=str, default="test", choices=["dev", "test", "all"])
     p_eval.add_argument("--bootstrap-iterations", type=int, default=500, help="Number of cluster bootstrap iterations")
 

@@ -329,18 +329,23 @@ def extract_single_document(
     return all_chunks, all_table_rows, doc_summary
 
 
-def run_extraction_pipeline(project_root: Path | None = None) -> dict[str, Any]:
+def run_extraction_pipeline(
+    project_root: Path | None = None,
+    manifest_path: Path | None = None,
+    output_prefix: str = "",
+) -> dict[str, Any]:
     """
-    Run Phase 2 document and table extraction across all documents in source_manifest.json.
-    Saves:
-      - data/processed/chunks.jsonl
-      - data/processed/table_rows.jsonl
-      - data/processed/extraction_report.json
+    Run Phase 2 document and table extraction across all documents in a source manifest.
+    Default saves to:
+      - data/processed/{output_prefix}chunks.jsonl
+      - data/processed/{output_prefix}table_rows.jsonl
+      - data/processed/{output_prefix}extraction_report.json
     """
     if project_root is None:
         project_root = Path(__file__).resolve().parents[2]
 
-    manifest_path = project_root / "data" / "manifests" / "source_manifest.json"
+    if manifest_path is None:
+        manifest_path = project_root / "data" / "manifests" / "source_manifest.json"
     manifest = load_source_manifest(manifest_path)
 
     processed_dir = project_root / "data" / "processed"
@@ -356,12 +361,13 @@ def run_extraction_pipeline(project_root: Path | None = None) -> dict[str, Any]:
         all_table_rows.extend(rows)
         doc_reports.append(summary)
 
-    chunks_path = processed_dir / "chunks.jsonl"
+    prefix = f"{output_prefix}_" if output_prefix and not output_prefix.endswith("_") else output_prefix
+    chunks_path = processed_dir / f"{prefix}chunks.jsonl"
     with chunks_path.open("w", encoding="utf-8") as f:
         for ch in all_chunks:
             f.write(json.dumps(ch.to_dict(), ensure_ascii=False) + "\n")
 
-    rows_path = processed_dir / "table_rows.jsonl"
+    rows_path = processed_dir / f"{prefix}table_rows.jsonl"
     with rows_path.open("w", encoding="utf-8") as f:
         for rw in all_table_rows:
             f.write(json.dumps(rw.to_dict(), ensure_ascii=False) + "\n")
@@ -378,21 +384,32 @@ def run_extraction_pipeline(project_root: Path | None = None) -> dict[str, Any]:
         "documents": doc_reports,
     }
 
-    report_path = processed_dir / "extraction_report.json"
+    report_path = processed_dir / f"{prefix}extraction_report.json"
     with report_path.open("w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
 
     return report
 
 
-def load_extracted_corpus(project_root: Path | None = None) -> list[ExtractedEvidenceUnit]:
-    """Load both chunks.jsonl and table_rows.jsonl as a unified list of ExtractedEvidenceUnit objects."""
+def load_extracted_corpus(
+    project_root: Path | None = None,
+    filenames: tuple[str, ...] | None = None,
+) -> list[ExtractedEvidenceUnit]:
+    """
+    Load extracted corpus units from data/processed/.
+    Defaults to loading PMFBY chunks.jsonl and table_rows.jsonl.
+    """
     if project_root is None:
         project_root = Path(__file__).resolve().parents[2]
     processed_dir = project_root / "data" / "processed"
 
+    if filenames is None:
+        target_files = ("chunks.jsonl", "table_rows.jsonl")
+    else:
+        target_files = filenames
+
     units: list[ExtractedEvidenceUnit] = []
-    for filename in ("chunks.jsonl", "table_rows.jsonl"):
+    for filename in target_files:
         p = processed_dir / filename
         if p.exists():
             with p.open("r", encoding="utf-8") as f:

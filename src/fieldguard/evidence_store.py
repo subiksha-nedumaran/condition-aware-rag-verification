@@ -55,17 +55,17 @@ class EvidenceStore:
 
     def _detect_and_flag_conflicts(self) -> None:
         """
-        Check all trusted rules sharing the same (scheme, rule_parameter, season, crop_category,
-        geography, policy_era). If two official records specify different maximum_rate values,
-        preserve both records and mark conflict_flag=True on each.
+        Check all trusted rules sharing the same (scheme, rule_parameter, context, geography, policy_era).
+        If two official records specify different maximum_rate values, preserve both records and mark
+        conflict_flag=True on each.
         """
         groups: dict[tuple[Any, ...], list[StructuredRuleRecord]] = {}
         for r in self.trusted_rules.values():
             key = (
                 r.scheme,
                 r.rule_parameter,
-                r.season,
-                r.crop_category,
+                r.entity_scope or r.crop_category,
+                r.frequency or r.season,
                 r.geography,
                 r.policy_era,
             )
@@ -1068,15 +1068,21 @@ def _build_canonical_structured_rules() -> list[StructuredRuleRecord]:
     return rules
 
 
-def build_default_evidence_store(project_root: Path | None = None) -> EvidenceStore:
+def build_default_evidence_store(
+    project_root: Path | None = None,
+    scheme: str = "pmfby",
+) -> EvidenceStore:
     """
     Load extracted corpus units from data/processed/ and populate a validated
     EvidenceStore with canonical structured rules.
-    Also attempts to register the untrusted pilot memo rule in non-strict mode
-    to record its rejection in store.rejected_rules.
+    Supports 'pmfby', 'pm_kisan', or 'all'.
     """
     if project_root is None:
         project_root = Path(__file__).resolve().parents[2]
+
+    norm_scheme = scheme.lower().replace("-", "_")
+    if norm_scheme in ("pm_kisan", "pmkisan"):
+        return build_pm_kisan_evidence_store(project_root)
 
     manifest = load_source_manifest(project_root / "data" / "manifests" / "source_manifest.json")
     units = load_extracted_corpus(project_root)
@@ -1121,6 +1127,44 @@ def build_default_evidence_store(project_root: Path | None = None) -> EvidenceSt
         verification_status="unverified_source",
     )
     store.add_structured_rule(untrusted_candidate, strict=False)
+
+    if norm_scheme in ("all", "multi"):
+        pmk_store = build_pm_kisan_evidence_store(project_root)
+        for doc_id in pmk_store.known_document_ids:
+            store.known_document_ids.add(doc_id)
+        for u in pmk_store.evidence_units.values():
+            store.register_evidence_unit(u)
+        for r in pmk_store.trusted_rules.values():
+            store.add_structured_rule(r, strict=True)
+
+    return store
+
+
+def build_pm_kisan_evidence_store(project_root: Path | None = None) -> EvidenceStore:
+    """
+    Construct a validated EvidenceStore populated with extracted PM-KISAN corpus units
+    and canonical structured rules.
+    """
+    if project_root is None:
+        project_root = Path(__file__).resolve().parents[2]
+
+    from fieldguard.pm_kisan_data import get_canonical_pm_kisan_rules
+
+    manifest_path = project_root / "data" / "manifests" / "pm_kisan_manifest.json"
+    manifest = load_source_manifest(manifest_path)
+    units = load_extracted_corpus(
+        project_root,
+        filenames=("pm_kisan_chunks.jsonl", "pm_kisan_table_rows.jsonl"),
+    )
+
+    store = EvidenceStore()
+    for doc in manifest.documents:
+        store.known_document_ids.add(doc.document_id)
+    for u in units:
+        store.register_evidence_unit(u)
+
+    for rule in get_canonical_pm_kisan_rules():
+        store.add_structured_rule(rule, strict=True)
 
     return store
 
