@@ -7,6 +7,12 @@ from typing import Any
 from fieldguard.schemes.base import BaseScheme
 from fieldguard.schemes.pm_kisan import PMKisanScheme
 from fieldguard.schemes.pmfby import PMFBYScheme
+from fieldguard.schemes.mgnrega import MGNREGAScheme
+from fieldguard.schemes.pmjay import PMJAYScheme
+from fieldguard.schemes.pmay_g import PMAYGScheme
+from fieldguard.schemes.pm_kusum import PMKusumScheme
+from fieldguard.schemes.pmmy import PMMYScheme
+from fieldguard.schemes.dynamic import GenericUploadedScheme
 
 
 class SchemeRegistry:
@@ -54,16 +60,17 @@ class SchemeRegistry:
 
     @classmethod
     def initialize_default_schemes(cls) -> None:
-        """Register built-in schemes (PMFBY, PM_KISAN)."""
+        """Register built-in government schemes and dynamic upload adapter."""
         cls.register_scheme(PMFBYScheme())
         cls.register_scheme(PMKisanScheme())
-
-
-# Auto-initialize default schemes on module import
-SchemeRegistry.initialize_default_schemes()
+        cls.register_scheme(MGNREGAScheme())
+        cls.register_scheme(PMJAYScheme())
+        cls.register_scheme(PMAYGScheme())
+        cls.register_scheme(PMKusumScheme())
+        cls.register_scheme(PMMYScheme())
+        cls.register_scheme(GenericUploadedScheme())
 
 
 def get_scheme_adapter(scheme_name: str | None) -> BaseScheme | None:
-    """Convenience helper to look up a scheme adapter."""
+    """Convenience helper to retrieve a scheme adapter by name or alias."""
     return SchemeRegistry.get_scheme(scheme_name)
-

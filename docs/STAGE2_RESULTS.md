@@ -116,3 +116,4 @@ The core research question of Stage 2 is whether condition-aware verification ge
 1. **Defensible Claim:** FieldGuard provides a **modular, condition-aware verification framework** whose schema, retrieval pipeline, and verification logic generalize beyond crop insurance to direct benefit transfers.
 2. **Empirical Robustness:** Blind numerical matching fails catastrophically across government schemes (FSR 45%–82%). FieldGuard's condition-aware matching and sufficiency gating provide the essential guardrails required for deployment in public policy question answering.
 3. **Reproducibility Guarantee:** All results are produced deterministically from authoritative `%PDF-1.4` binary source documents, cryptographic SHA-256 manifests, cluster-stratified benchmark splits, and automated evaluation scripts.
+

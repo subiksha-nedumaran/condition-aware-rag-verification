@@ -281,3 +281,4 @@ The interactive Streamlit application ([`app.py`](file:///c:/FieldGuard_ag/app.p
 1. **Automated Schema Induction:** Extending the framework with unsupervised ontology extractors to induce new scheme adapters automatically from policy PDFs.
 2. **Dense Table Embeddings:** Exploring hybrid table representation models (e.g., TAPAS) for complex multi-tier subsidy tables.
 3. **Multi-Lingual Verification:** Evaluating transfer across Hindi and regional language government policy gazettes.
+

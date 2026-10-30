@@ -11,6 +11,8 @@ safetensors>=0.4.0
 tokenizers>=0.15.0
 huggingface-hub>=0.20.0
 pytest>=8.0.0
+streamlit>=1.30.0
+pypdf>=5.0.0
 # Optional PDF extraction backends (pure-Python PDF 1.4 parser included as fallback):
 # pymupdf>=1.23.0
 # pdfplumber>=0.10.0
