@@ -46,3 +46,4 @@ class PMKusumScheme(BaseScheme):
         enable_switches: dict[str, bool] | None = None,
     ) -> tuple[bool, list[str]]:
         return True, []
+

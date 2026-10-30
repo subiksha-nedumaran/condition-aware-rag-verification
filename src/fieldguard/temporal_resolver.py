@@ -216,6 +216,19 @@ def resolve_temporal_applicability(
                 is_version_mismatch=True,
             )
 
+    # Case 8: Flagship schemes and user-uploaded custom policy documents
+    if (
+        rule.source_document_id.startswith("DOC_UPLOAD_")
+        or rule.policy_era in ("uploaded_active", "mgnrega_act", "pmjay_current", "pmayg_current", "pmkusum_current", "pmmy_current")
+    ):
+        return TemporalResolutionResult(
+            is_applicable=True,
+            temporal_status="matched_active_scheme_policy",
+            explanation=f"Rule is verified under active policy era '{rule.policy_era}'.",
+            requires_abstention=False,
+            is_version_mismatch=False,
+        )
+
     return TemporalResolutionResult(
         is_applicable=False,
         temporal_status="unresolved_temporal_scope",

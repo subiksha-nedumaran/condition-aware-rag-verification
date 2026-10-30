@@ -11,7 +11,7 @@ from fieldguard.schemes.pmay_g import PMAYGScheme
 from fieldguard.schemes.pm_kusum import PMKusumScheme
 from fieldguard.schemes.pmmy import PMMYScheme
 from fieldguard.schemes.dynamic import GenericUploadedScheme
-from fieldguard.schemes.registry import SchemeRegistry, get_scheme_adapter
+from fieldguard.schemes.registry import SchemeRegistry, get_scheme_adapter, list_supported_schemes
 
 __all__ = [
     "BaseScheme",
@@ -26,4 +26,5 @@ __all__ = [
     "GenericUploadedScheme",
     "SchemeRegistry",
     "get_scheme_adapter",
+    "list_supported_schemes",
 ]

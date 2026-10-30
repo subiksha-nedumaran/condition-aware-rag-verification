@@ -74,3 +74,8 @@ class SchemeRegistry:
 def get_scheme_adapter(scheme_name: str | None) -> BaseScheme | None:
     """Convenience helper to retrieve a scheme adapter by name or alias."""
     return SchemeRegistry.get_scheme(scheme_name)
+
+
+def list_supported_schemes() -> list[str]:
+    """Convenience helper to retrieve all registered scheme IDs."""
+    return SchemeRegistry.list_supported_schemes()

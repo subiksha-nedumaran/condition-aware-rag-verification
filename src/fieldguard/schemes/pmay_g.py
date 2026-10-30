@@ -59,3 +59,4 @@ class PMAYGScheme(BaseScheme):
                 reasons.append(f"geography_mismatch(claimed={c_geo}, rule={r_geo})")
 
         return len(reasons) == 0, reasons
+

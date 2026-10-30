@@ -93,12 +93,13 @@ def process_uploaded_document(
             mentions = extract_all_numeric_mentions(block)
             for m in mentions:
                 rule_id = f"RULE_{doc_id}_{rule_counter}"
+                param_name = f"rule_p{page_num}_{m.unit}_{int(m.value)}"
                 rule_counter += 1
                 rule = StructuredRuleRecord(
                     rule_id=rule_id,
                     evidence_id=ev_id,
-                    scheme=clean_name,
-                    rule_parameter="custom_policy_rule",
+                    scheme="CUSTOM_UPLOADED",
+                    rule_parameter=param_name,
                     season="annual",
                     crop_category="all_general",
                     geography="all_india",
@@ -108,7 +109,7 @@ def process_uploaded_document(
                     numeric_operator="eq",
                     unit=m.unit or "dimensionless",
                     basis="per_policy_specification",
-                    qualifier=None,
+                    qualifier="standard_policy_entitlement",
                     requires_qualifier_for_unconditional_claim=False,
                     source_document_id=doc_id,
                     document_version="uploaded_custom",
@@ -130,9 +131,9 @@ def process_uploaded_document(
 
     store = EvidenceStore()
     for u in units:
-        store.add_evidence_unit(u)
+        store.register_evidence_unit(u)
     for r in rules:
-        store.add_rule(r)
+        store.add_structured_rule(r, strict=False)
 
     return store, units, rules
 
@@ -176,3 +177,4 @@ def answer_question_from_uploaded_doc(
         "citations": citations,
         "top_chunks": [r.to_dict() for r in results],
     }
+

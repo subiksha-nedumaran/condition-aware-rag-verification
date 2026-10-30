@@ -375,8 +375,14 @@ class FieldGuardVerifier:
         if self.config.enable_structured_condition_matching:
             missing_context: list[str] = []
             if parsed.scheme is None:
-                missing_context.append("scheme")
-            else:
+                # Infer scheme from evidence store if all trusted rules belong to a single scheme
+                known_schemes = {r.scheme for r in self.store.trusted_rules.values() if r.scheme}
+                if len(known_schemes) == 1:
+                    parsed.scheme = next(iter(known_schemes))
+                else:
+                    missing_context.append("scheme")
+
+            if parsed.scheme is not None:
                 scheme_adapter = get_scheme_adapter(parsed.scheme)
                 if scheme_adapter:
                     ctx_dict = {

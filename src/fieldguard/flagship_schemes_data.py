@@ -560,9 +560,10 @@ def get_flagship_scheme_data(scheme_key: str) -> tuple[list[ExtractedEvidenceUni
 def build_flagship_scheme_evidence_store(scheme_key: str, project_root: Path | None = None) -> EvidenceStore:
     """Build a validated EvidenceStore for any of the flagship government schemes."""
     units, rules = get_flagship_scheme_data(scheme_key)
-    store = EvidenceStore(project_root=project_root)
+    store = EvidenceStore()
     for u in units:
-        store.add_evidence_unit(u)
+        store.register_evidence_unit(u)
     for r in rules:
-        store.add_rule(r)
+        store.add_structured_rule(r, strict=False)
     return store
+

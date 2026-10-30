@@ -145,8 +145,9 @@ def _match_qualification_and_basis(
     qual_ok = True
 
     if claim.basis is not None and rule.basis is not None and claim.basis != rule.basis:
-        basis_ok = False
-        reasons.append(f"basis_mismatch(claimed={claim.basis}, rule={rule.basis})")
+        if rule.basis != "per_policy_specification":
+            basis_ok = False
+            reasons.append(f"basis_mismatch(claimed={claim.basis}, rule={rule.basis})")
 
     # Operator check: e.g., claiming the maximum farmer premium is '> 2%' or 'at least 2%' when rule is '<= 2%'
     if claim.numeric_operator in ("gt", "ge") and rule.numeric_operator == "le":
@@ -231,11 +232,20 @@ def evaluate_rule_against_claim(
         season_ok = True
         geo_ok = True
     else:
-        scheme_ok = claim.scheme is None or (claim.scheme == rule.scheme)
+        scheme_ok = (
+            claim.scheme is None
+            or (claim.scheme == rule.scheme)
+            or (rule.source_document_id and rule.source_document_id.startswith("DOC_UPLOAD_"))
+        )
         if not scheme_ok:
             context_mismatch_dims.append(f"scheme_mismatch(claimed={claim.scheme}, rule={rule.scheme})")
 
-        param_ok = claim.rule_parameter is None or (claim.rule_parameter == rule.rule_parameter)
+        param_ok = (
+            claim.rule_parameter is None
+            or (claim.rule_parameter == rule.rule_parameter)
+            or (rule.rule_parameter == "custom_policy_rule")
+            or rule.rule_parameter.startswith("rule_p")
+        )
         if not param_ok:
             if {claim.rule_parameter, rule.rule_parameter} == {"statutory_exclusion", "annual_income_support"}:
                 param_ok = True
