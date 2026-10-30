@@ -104,6 +104,27 @@ def test_policy_qa_endpoint():
     assert len(data["answer"]) > 10
     assert len(data["top_chunks"]) > 0
     assert "physical_pdf_page" in data["top_chunks"][0]
+    assert "synthesized_by" in data
+
+
+def test_explain_endpoint():
+    payload = {
+        "verdict": "WRONG_CONTEXT",
+        "scheme_id": "PMFBY",
+        "candidate_claim": "Farmers pay 5% premium for food grains.",
+        "rationale": "Claimed 5% applies to commercial/horticultural crops, not food grains.",
+        "context_mismatch": ["crop_category: food_grains != commercial_crops"],
+        "condition_checks": [
+            {"name": "Numerical Agreement", "status": "PASSED", "detail": "Value 5% exists in guidelines"},
+            {"name": "Crop Category", "status": "FAILED", "detail": "Mismatch: food grains vs commercial"}
+        ]
+    }
+    response = client.post("/api/explain", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "explanation" in data
+    assert len(data["explanation"]) > 20
+    assert "model" in data
 
 
 def test_benchmark_stats_endpoint():

@@ -72,7 +72,7 @@ def run_all_feature_tests():
         header_text = page.locator("header").inner_text()
         record_check("Header Brand", "FieldGuard" in header_text, "FieldGuard brand detected")
         record_check("Version Badge", "v3.0 ENTERPRISE" in header_text, "v3.0 ENTERPRISE badge present")
-        record_check("Engine Status", "Engine Active (Offline CPU)" in header_text, "Offline CPU engine active")
+        record_check("Engine Status", "Groq LPU Active" in header_text or "Engine Active" in header_text, "Active engine status confirmed")
 
         # KPI Cards check
         kpi_cards = page.locator(".glass-card").all_inner_texts()

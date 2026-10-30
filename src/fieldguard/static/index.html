@@ -136,9 +136,9 @@
       <!-- Right Action Controls -->
       <div class="flex items-center space-x-3">
         <!-- Live Status Pill -->
-        <div class="hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Engine Active (Offline CPU)</span>
+        <div id="status-pill-container" class="hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+          <span id="status-pill-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="status-pill-text">Engine Active (Offline CPU)</span>
         </div>
 
         <!-- Custom Upload Trigger -->
@@ -391,6 +391,28 @@
               <span id="context-mismatch-text"></span>
             </div>
           </div>
+
+          <!-- Groq LPU Explanation Accordion / Section -->
+          <div id="groq-explain-section" class="mt-4 pt-3 border-t border-slate-800/80">
+            <div class="flex items-center justify-between">
+              <button id="btn-groq-explain" onclick="triggerGroqExplanation()" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-purple-600/30 to-indigo-600/30 hover:from-purple-600/50 hover:to-indigo-600/50 text-purple-200 border border-purple-500/30 transition-all cursor-pointer">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
+                <span id="btn-groq-explain-text">Explain Verdict with Groq AI</span>
+              </button>
+              <span class="text-[10px] text-slate-500 font-mono">Plain-English Citizen Translation</span>
+            </div>
+            
+            <div id="groq-explain-result" class="hidden mt-3 p-3.5 rounded-xl bg-purple-950/20 border border-purple-500/30 text-slate-200 text-xs leading-relaxed space-y-1.5">
+              <div class="flex items-center justify-between text-[11px] font-mono text-purple-300 font-semibold border-b border-purple-500/20 pb-1.5">
+                <span class="flex items-center space-x-1.5">
+                  <i data-lucide="cpu" class="w-3.5 h-3.5 text-purple-400"></i>
+                  <span>Citizen-Friendly Policy Explanation</span>
+                </span>
+                <span id="groq-explain-model-badge" class="text-[10px] text-purple-400/80 font-mono">⚡ Groq LPU</span>
+              </div>
+              <p id="groq-explain-text" class="pt-1 text-slate-300 leading-normal"></p>
+            </div>
+          </div>
         </div>
 
         <!-- 2 Columns: Condition Diff Matrix & Condition Checks Grid -->
@@ -480,9 +502,14 @@
       <div id="qa-result-box" class="hidden space-y-4">
         <!-- Answer Box -->
         <div class="glass-card rounded-2xl p-6 border-l-4 border-l-blue-500 space-y-3">
-          <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-blue-400">
-            <i data-lucide="sparkles" class="w-4 h-4"></i>
-            <span>Grounded Policy Answer</span>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-blue-400">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Grounded Policy Answer</span>
+            </div>
+            <span id="qa-synthesized-badge" class="hidden px-2.5 py-1 text-[11px] font-mono font-semibold rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              ⚡ Groq LPU (qwen/qwen3.8-27b)
+            </span>
           </div>
           <div id="qa-answer-text" class="text-sm text-slate-100 leading-relaxed font-medium"></div>
         </div>
@@ -746,6 +773,7 @@
     // Initialize application on page load
     document.addEventListener("DOMContentLoaded", async () => {
       lucide.createIcons();
+      await checkHealth();
       await fetchSchemes();
       await loadCorpusRules();
 
@@ -756,6 +784,30 @@
         }
       });
     });
+
+    // Health and Groq LPU Status Check
+    async function checkHealth() {
+      try {
+        const res = await fetch("/api/health");
+        const data = await res.json();
+        const pill = document.getElementById("status-pill-container");
+        const dot = document.getElementById("status-pill-dot");
+        const txt = document.getElementById("status-pill-text");
+        if (!pill || !dot || !txt) return;
+
+        if (data.groq_active) {
+          pill.className = "hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-medium shadow-sm shadow-purple-500/10";
+          dot.className = "w-2 h-2 rounded-full bg-purple-400 animate-pulse";
+          txt.innerHTML = `⚡ Groq LPU Active <span class="font-mono text-[10px] text-purple-400">(${data.groq_model || 'qwen/qwen3.8-27b'})</span>`;
+        } else {
+          pill.className = "hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium";
+          dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+          txt.textContent = "Engine Active (Offline CPU)";
+        }
+      } catch (e) {
+        console.error("Health check error:", e);
+      }
+    }
 
     // Theme Toggle
     function toggleTheme() {
@@ -967,6 +1019,12 @@
         mismatchBox.classList.add("hidden");
       }
 
+      // Reset Groq explanation accordion
+      const groqRes = document.getElementById("groq-explain-result");
+      if (groqRes) groqRes.classList.add("hidden");
+      const btnExplain = document.getElementById("btn-groq-explain-text");
+      if (btnExplain) btnExplain.textContent = "Explain Verdict with Groq AI";
+
       // Render Side-by-Side Condition Diff Table
       const diffTbody = document.getElementById("condition-diff-tbody");
       diffTbody.innerHTML = "";
@@ -1085,6 +1143,14 @@
         const data = await res.json();
         ansText.textContent = data.answer;
 
+        const synBadge = document.getElementById("qa-synthesized-badge");
+        if (data.synthesized_by && data.synthesized_by !== "None") {
+          synBadge.textContent = "⚡ " + data.synthesized_by;
+          synBadge.classList.remove("hidden");
+        } else {
+          synBadge.classList.add("hidden");
+        }
+
         citList.innerHTML = "";
         data.top_chunks.forEach((c, idx) => {
           const item = document.createElement("div");
@@ -1101,6 +1167,47 @@
 
       } catch (err) {
         ansText.textContent = "Failed to retrieve grounded answer: " + err;
+      }
+    }
+
+    // Trigger Groq AI Plain-English Verdict Explanation
+    async function triggerGroqExplanation() {
+      if (!LAST_VERIFICATION_RESULT) return;
+      const btn = document.getElementById("btn-groq-explain");
+      const btnText = document.getElementById("btn-groq-explain-text");
+      const resBox = document.getElementById("groq-explain-result");
+      const expText = document.getElementById("groq-explain-text");
+      const modelBadge = document.getElementById("groq-explain-model-badge");
+
+      btn.disabled = true;
+      btnText.textContent = "Synthesizing civic explanation...";
+      resBox.classList.remove("hidden");
+      expText.innerHTML = '<span class="text-slate-400 animate-pulse">Consulting Groq LPU engine for citizen-friendly translation...</span>';
+
+      try {
+        const res = await fetch("/api/explain", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            verdict: LAST_VERIFICATION_RESULT.verdict,
+            scheme_id: LAST_VERIFICATION_RESULT.scheme_id,
+            candidate_claim: LAST_VERIFICATION_RESULT.candidate_claim,
+            question: LAST_VERIFICATION_RESULT.question || "",
+            rationale: LAST_VERIFICATION_RESULT.verification_rationale || "",
+            context_mismatch: LAST_VERIFICATION_RESULT.context_mismatch || [],
+            condition_checks: LAST_VERIFICATION_RESULT.condition_checks || []
+          })
+        });
+        const data = await res.json();
+        expText.textContent = data.explanation;
+        modelBadge.textContent = data.model || "⚡ Groq LPU";
+        btnText.textContent = "Re-explain with Groq AI";
+      } catch (err) {
+        expText.textContent = "Explanation request failed: " + err;
+        btnText.textContent = "Explain Verdict with Groq AI";
+      } finally {
+        btn.disabled = false;
+        lucide.createIcons();
       }
     }
 

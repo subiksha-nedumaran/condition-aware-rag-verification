@@ -13,6 +13,7 @@ import time
 from typing import Any
 import uuid
 
+import requests
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -41,6 +42,18 @@ from fieldguard.verifier import FieldGuardVerifier, VerificationPrediction
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
+
+# Load environment variables from .env
+def _load_env():
+    env_file = PROJECT_ROOT / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip())
+
+_load_env()
 
 app = FastAPI(
     title="FieldGuard Engine API",
@@ -99,6 +112,87 @@ class QARequest(BaseModel):
 
 class CertificateRequest(BaseModel):
     verification_data: dict[str, Any]
+
+
+class ExplainRequest(BaseModel):
+    verdict: str
+    scheme_id: str
+    candidate_claim: str
+    question: str = ""
+    rationale: str = ""
+    context_mismatch: list[str] = []
+    condition_checks: list[dict[str, Any]] = []
+
+
+def is_groq_available() -> bool:
+    return bool(os.environ.get("GROQ_API_KEY", "").strip())
+
+
+def call_groq_completion(
+    prompt: str,
+    system_prompt: str,
+    max_tokens: int = 500,
+    temperature: float = 0.1,
+) -> str | None:
+    api_key = os.environ.get("GROQ_API_KEY", "").strip()
+    if not api_key:
+        return None
+    model = os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b")
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    try:
+        resp = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=8.0,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"].strip()
+            # Clean any model <think> reasoning tags
+            if "<think>" in content and "</think>" in content:
+                content = content.split("</think>")[-1].strip()
+            return content
+    except Exception:
+        pass
+    return None
+
+
+def synthesize_answer_with_groq(question: str, top_chunks: list[Any]) -> str | None:
+    if not is_groq_available() or not top_chunks:
+        return None
+    passages = []
+    for idx, c in enumerate(top_chunks, 1):
+        doc_id = getattr(c, "source_document_id", None) or (c.get("source_document_id") if isinstance(c, dict) else "Official Policy")
+        page = getattr(c, "physical_pdf_page", None) or (c.get("physical_pdf_page") if isinstance(c, dict) else "?")
+        text = getattr(c, "text", None) or (c.get("text") if isinstance(c, dict) else "")
+        passages.append(f"[{idx}] Source Document: {doc_id} (Page {page})\nText: {text.strip()}")
+    context_str = "\n\n".join(passages)
+    prompt = (
+        f"Citizen / Policy Question: {question}\n\n"
+        f"Official Policy Evidence Excerpts:\n{context_str}\n\n"
+        "Synthesize a clear, direct, and helpful answer grounded strictly in these excerpts. "
+        "Cite physical page numbers like [Source p.X] for every key fact."
+    )
+    system_prompt = (
+        "You are FieldGuard Policy AI, an expert neuro-symbolic assistant for Indian government schemes. "
+        "Synthesize an accurate, concise answer based ONLY on the provided official evidence excerpts. "
+        "Always cite the source document and page number in square brackets, e.g. [DOC_PMFBY_OG_2023 p.4]. "
+        "Never invent rules, numbers, or qualifications not explicitly supported by the text."
+    )
+    return call_groq_completion(prompt, system_prompt, max_tokens=600, temperature=0.1)
 
 
 SCHEME_METADATA = {
@@ -163,11 +257,15 @@ SCHEME_METADATA = {
 
 @app.get("/api/health")
 def health():
+    groq_on = is_groq_available()
+    model_name = os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b")
     return {
         "status": "healthy",
         "service": "FieldGuard Neuro-Symbolic Policy Engine",
         "version": "3.0.0",
-        "inference_device": "CPU (Offline Deterministic)",
+        "inference_device": f"Groq LPU Cloud ({model_name})" if groq_on else "CPU (Offline Deterministic)",
+        "groq_active": groq_on,
+        "groq_model": model_name if groq_on else None,
         "accuracy_held_out": 0.9405,
         "false_support_rate": 0.0263,
     }
@@ -353,11 +451,13 @@ def question_answering(req: QARequest):
         store = sess["store"]
         retrievers = sess["retrievers"]
         res = answer_question_from_uploaded_doc(req.question, store, retrievers, top_k=req.top_k)
+        groq_ans = synthesize_answer_with_groq(req.question, res.get("top_chunks", []))
         return {
             "question": req.question,
-            "answer": res["answer"],
+            "answer": groq_ans if groq_ans else res["answer"],
             "citations": res["citations"],
             "top_chunks": res["top_chunks"],
+            "synthesized_by": f"Groq LPU ({os.environ.get('GROQ_MODEL', 'qwen/qwen3.8-27b')})" if groq_ans else "Deterministic Citation Extractor",
         }
 
     store, retrievers, verifier = get_scheme_backend(req.scheme_id)
@@ -369,10 +469,14 @@ def question_answering(req: QARequest):
             "answer": "No relevant evidence found in the official guidelines.",
             "citations": [],
             "top_chunks": [],
+            "synthesized_by": "None",
         }
 
+    top_chunks_dicts = [r.to_dict() for r in results]
+    groq_ans = synthesize_answer_with_groq(req.question, results)
+
     top_chunk = results[0]
-    answer_text = (
+    fallback_text = (
         f"According to {top_chunk.source_document_id} (Page {top_chunk.physical_pdf_page}), "
         f"the policy specifies: \"{top_chunk.text.strip()}\""
     )
@@ -384,9 +488,43 @@ def question_answering(req: QARequest):
 
     return {
         "question": req.question,
-        "answer": answer_text,
+        "answer": groq_ans if groq_ans else fallback_text,
         "citations": citations,
-        "top_chunks": [r.to_dict() for r in results],
+        "top_chunks": top_chunks_dicts,
+        "synthesized_by": f"Groq LPU ({os.environ.get('GROQ_MODEL', 'qwen/qwen3.8-27b')})" if groq_ans else "Deterministic Citation Extractor",
+    }
+
+
+@app.post("/api/explain")
+def explain_verdict(req: ExplainRequest):
+    """Provide a plain-English, citizen-friendly explanation of why FieldGuard reached a specific verdict."""
+    checks_str = "\n".join([f"- {c.get('name')}: {c.get('status')} ({c.get('detail')})" for c in req.condition_checks])
+    prompt = (
+        f"Scheme: {req.scheme_id}\n"
+        f"Candidate Claim: \"{req.candidate_claim}\"\n"
+        f"FieldGuard Deterministic Verdict: {req.verdict}\n"
+        f"Engine Rationale: {req.rationale}\n"
+        f"Context Mismatches: {', '.join(req.context_mismatch) if req.context_mismatch else 'None'}\n"
+        f"10-Step Condition Checks:\n{checks_str}\n\n"
+        f"Explain in clear, respectful, plain language why this claim was evaluated as {req.verdict}. "
+        "Point out the specific condition mismatch (e.g. crop category, premium cap, season, or missing qualification) "
+        "or explain why it is verified as correct according to official guidelines. "
+        "Keep the explanation concise (2 to 4 sentences) and easy for a farmer or citizen to understand."
+    )
+    system_prompt = (
+        "You are FieldGuard Civic Explainer. You translate formal neuro-symbolic verification verdicts "
+        "into clear, plain-language, empathetic explanations for citizens and field officers. "
+        "Explain why the claim is Supported, Wrong Context, Contradicted, or Unverifiable without technical jargon."
+    )
+    explanation = call_groq_completion(prompt, system_prompt, max_tokens=350, temperature=0.2)
+    if not explanation:
+        explanation = (
+            f"The claim '{req.candidate_claim}' received verdict '{req.verdict}'. "
+            f"Rationale: {req.rationale or 'Evaluated against official statutory scheme rules.'}"
+        )
+    return {
+        "explanation": explanation,
+        "model": f"Groq LPU ({os.environ.get('GROQ_MODEL', 'qwen/qwen3.8-27b')})" if is_groq_available() else "Deterministic Rule Explainer",
     }
 
 
