@@ -156,9 +156,43 @@ Evaluated on 168 held-out test claims (114 non-supported claims):
 
 ---
 
+## Phase 6: Stage 2 Multi-Scheme Generalization & PM-KISAN Evaluation
+- Generalized the typed evidence schema (`StructuredRuleRecord`, `ExtractedEvidenceUnit`) to decouple from crop/insurance-specific terminology (`primary_value`, `rule_parameter`, `entity_scope`).
+- Built modular Scheme Plugin Architecture in `src/fieldguard/schemes/` (`BaseScheme`, `SchemeRegistry`, `PMFBYScheme`, `PMKisanScheme`).
+- Created authoritative PM-KISAN evidence store (`build_pm_kisan_evidence_store`) grounded in official guidelines (Clause 3.1, Clause 5, 2019 launch & universal revision eras).
+- Curated and validated independent held-out PM-KISAN benchmark ($n = 26$ claims, 14 non-supported distractors).
+- Evaluated zero-shot cross-scheme transfer: FieldGuard achieved **92.31% Accuracy**, **91.95% Macro-F1**, and **0.00% False-Support Rate** on PM-KISAN, drastically outperforming Baselines (Numeric Only FSR: 71.43%).
+- Increased regression test suite to **64 / 64 passing (100%)**.
+
+---
+
+## Phase 7: Stage 3 Flagship Schemes Suite & Dynamic Document Ingestion Engine
+- Implemented adapters and verified rule corpora for 5 additional flagship national welfare schemes:
+  - **MGNREGS**: 100 days statutory wage employment, 15-day work allocation timeline, unemployment allowance.
+  - **PM-JAY**: ₹5,00,000 annual family health cover, 100% cashless treatment, no family size limit.
+  - **PMAY-G**: ₹1,20,000 plain areas grant, ₹1,30,000 hilly areas grant, 25 sq.m minimum area, SBM toilet aid.
+  - **PM-KUSUM**: 60% total capital subsidy (30% CFA + 30% State), 7.5 HP max standalone solar pump capacity.
+  - **PMMY**: Shishu (up to ₹50k), Kishore (₹50k-₹5L), Tarun (₹5L-₹10L/₹20L) collateral-free micro-credit.
+- Developed the **Dynamic Document Ingestion Engine** (`uploaded_doc_engine.py`):
+  - In-memory PDF and TXT guidelines parser using `pypdf`.
+  - Block text chunking and table row extraction.
+  - Automated candidate rule induction with page-and-value scoped parameter naming (`rule_p{page}_{unit}_{val}`) preventing false conflicts.
+  - Implemented `answer_question_from_uploaded_doc` providing grounded answers with physical PDF page numbers and paragraph citations.
+- Revamped the Streamlit interactive web platform (`app.py`):
+  - Sidebar with all 7 flagship schemes + dedicated "Upload Custom Scheme Document" mode.
+  - Three specialized tabs under upload mode: (1) Natural Language Q&A, (2) Condition-Aware Verification, (3) Document Structure Inspector.
+  - Fixed scenario dropdown state synchronization and `pre_tab_qa_q` session state handling.
+- Automated Testing Expansion:
+  - Added `tests/test_flagship_schemes.py` covering registry, flagship adapters, and uploaded document verification.
+  - Added `tests/test_streamlit_app.py` using official `streamlit.testing.v1.AppTest` for headless UI verification.
+  - Built `scripts/test_live_browser.py` using **Playwright with Microsoft Edge** for live browser verification against `http://localhost:8501`.
+- Total test count reached: **84 / 84 passing (100%)**.
+
+---
+
 ## Current Status Summary
-- **Foundation:** Fully repaired, zero syntax or regex errors, clean virtualenv installation.
-- **Automated Tests:** **51 / 51 passing (100%)**.
-- **CLI:** 100% operational across all workflows.
-- **Artifacts & Data:** Benchmark, evidence store, embeddings cache, metrics, logs, and plots completely synchronized.
-- **Thesis & Defense Readiness:** Complete, verifiable, and academically defensible.
+- **Foundation:** Universal, modular, multi-scheme verification and Q&A framework.
+- **Automated Tests:** **84 / 84 passing (100%)** in ~15.2 seconds.
+- **Web Interface:** Live and healthy on `http://localhost:8501`.
+- **Live Browser Automation:** 100% verified via Playwright on headless Microsoft Edge with visual screenshot captures in `results/screenshots/`.
+- **Thesis & Defense Readiness:** Complete, fully documented, verified, and ready for MSc viva defense.

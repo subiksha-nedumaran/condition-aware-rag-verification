@@ -1,18 +1,35 @@
 # FieldGuard: Condition-Aware Verification of Numerical Claims in Government-Scheme Question Answering Using RAG
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests: 51 Passed](https://img.shields.io/badge/tests-51%20passed-brightgreen.svg)](tests/)
-[![Accuracy: 94.05%](https://img.shields.io/badge/accuracy-94.05%25-green.svg)](results/metrics/)
+[![Tests: 84 Passed](https://img.shields.io/badge/tests-84%20passed-brightgreen.svg)](tests/)
+[![Accuracy: 94.05%](https://img.shields.io/badge/PMFBY%20Accuracy-94.05%25-green.svg)](results/metrics/)
+[![PM-KISAN Accuracy: 92.31%](https://img.shields.io/badge/PM--KISAN%20Accuracy-92.31%25-green.svg)](docs/STAGE2_RESULTS.md)
 [![False Support Rate: 2.63%](https://img.shields.io/badge/FSR-2.63%25-brightgreen.svg)](results/metrics/)
+[![Schemes: 7 Flagship + Upload](https://img.shields.io/badge/schemes-7%20Flagship%20%2B%20Custom%20Upload-blueviolet.svg)](src/fieldguard/schemes/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-informational.svg)](LICENSE)
 
-**FieldGuard** is a research-oriented MSc Data Science capstone project developing and empirically evaluating a condition-aware numerical claim verification pipeline for Retrieval-Augmented Generation (RAG) in public policy and agricultural insurance question answering.
+**FieldGuard** is a research-oriented MSc Data Science capstone project developing and empirically evaluating a condition-aware numerical claim verification pipeline for Retrieval-Augmented Generation (RAG) in public policy question answering.
 
-The primary research application focuses on India's flagship agricultural insurance policy: the **Pradhan Mantri Fasal Bima Yojana (PMFBY)**, Ministry of Agriculture & Farmers Welfare, Government of India.
+The framework supports **7 major flagship Indian welfare schemes** alongside a **Dynamic Document Ingestion Engine** that parses arbitrary government policy documents (`.pdf` / `.txt`) for instant Question Answering with page citations and condition-aware numerical claim verification.
 
 ---
 
-## 1. The Core Problem
+## 1. Supported Schemes & Dynamic Capabilities
+
+| Mode / Scheme | Domain | Core Policy Rules | Key Invariants Verified |
+| :--- | :--- | :--- | :--- |
+| 🌾 **PMFBY** | Crop Insurance | 2% Kharif food grains, 1.5% Rabi food grains, 5% commercial/horticultural crops; 100% State wild animal add-on. | *"Whichever is less"* qualifier, crop categories, seasons, gazette amendment resolution. |
+| 🚜 **PM-KISAN** | Direct Income Support | ₹6,000/yr in 3 four-monthly instalments of ₹2,000; statutory exclusions (institutional landholders ₹0); 100% eKYC. | Frequency distractor rejection (₹6,000/instalment rejected), beneficiary eligibility (landholder vs tenant). |
+| 👷 **MGNREGS** | Rural Employment | Statutory **100 days** unskilled wage employment per rural household; **15-day** work allocation timeline. | Geographic scope (rural only; urban claims flagged as `WRONG_CONTEXT`), applicant household constraints. |
+| 🏥 **PM-JAY** | Health Assurance | **₹5,00,000** annual family health cover; secondary/tertiary hospitalisation; **100% cashless**; no family size cap. | Family-level cap enforcement (₹10L claims contradicted), secondary/tertiary inpatient scope. |
+| 🏠 **PMAY-G** | Rural Housing | **₹1,20,000** unit grant in plain areas; **₹1,30,000** in hilly/difficult areas; **25 sq. metres** minimum floor area. | Topographic area discrimination (`plains_areas` vs `hilly_areas`), minimum floor area vs plot area. |
+| ☀️ **PM-KUSUM** | Solar Agriculture | **60% total capital subsidy** (30% CFA + 30% State); standalone pumps up to **7.5 HP** capacity. | Component-B standalone pump scope, capacity ceiling (7.5 HP), CFA vs combined subsidy alignment. |
+| 💼 **PMMY** | Mudra Micro-Credit | **Shishu** (up to ₹50,000), **Kishore** (₹50,000–₹5,00,000), **Tarun** (₹5,00,000–₹10,00,000/₹20,00,000); collateral-free. | Tier threshold boundaries (e.g., claiming ₹1,00,000 under Shishu flagged as `CONTRADICTED`). |
+| 📂 **Upload Custom Document** | **Any Policy Document** | **Dynamic Ingestion (PDF / TXT)** with page-level chunking, table extraction, and rule induction. | Page-grounded citations, in-memory RRF hybrid retrieval, zero-shot condition-aware claim verification. |
+
+---
+
+## 2. The Core Problem
 
 Consider a citizen or farmer asking:
 > *"For Kharif food grains under PMFBY, what is the maximum farmer premium?"*
@@ -141,7 +158,8 @@ pip install -e .
 ```powershell
 python -m pytest -v
 ```
-All **51 tests pass** in under 4 seconds without network dependencies or paid API keys.
+All **84 tests pass (100%)** in ~15 seconds without external network dependencies or paid API keys.
+Includes 51 PMFBY tests, 13 PM-KISAN tests, 9 flagship/upload tests, and 11 end-to-end Streamlit UI tests.
 
 ---
 
@@ -203,17 +221,24 @@ python -m fieldguard.cli evaluate errors --split test
 
 ---
 
-## 7. Interactive Demonstration UI
+## 7. Interactive Demonstration UI & Live Browser Testing
 
-Launch the Streamlit interactive dashboard:
+### Launch Interactive Streamlit Web App
 ```powershell
-pip install streamlit
 streamlit run app.py
 ```
-Provides:
-- Interactive scenario selection covering all four canonical verdicts.
-- Condition-by-condition check breakdown with status badges.
-- Latency reporting and expandable retrieved evidence chunks.
+Open **`http://localhost:8501`** in your browser. The platform provides:
+- **🏛️ 7 Flagship Schemes Corpus**: Instant switching between PMFBY, PM-KISAN, MGNREGS, PM-JAY, PMAY-G, PM-KUSUM, and PMMY with pre-loaded benchmark scenarios.
+- **📂 Upload Custom Policy Document (PDF / TXT)**:
+  - **Natural Language Policy Q&A**: Ask questions in plain English and receive fact-grounded answers with exact physical PDF page and passage citations.
+  - **Condition-Aware Verification**: Validate arbitrary numerical claims against uploaded rules with instant verdict badges (`SUPPORTED`, `WRONG_CONTEXT`, `CONTRADICTED`, `UNVERIFIABLE`).
+  - **Document Structure Inspector**: Inspect indexed passages, table rows, and induced candidate rules.
+
+### Run Automated Live Browser Tests
+```powershell
+python scripts/test_live_browser.py
+```
+Uses **Playwright + Microsoft Edge** to launch a live browser instance, navigate to the running Streamlit server, simulate user interactions, upload test documents, verify verdicts, and save visual proof screenshots to `results/screenshots/`.
 
 ---
 
