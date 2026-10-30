@@ -301,6 +301,10 @@ def _detect_crop_category(text: str, rule_param: str | None) -> str | None:
 
 def _detect_geography(text: str, rule_param: str | None) -> str | None:
     t = text.lower()
+    if re.search(r"\b(?:hilly\s+(?:states?|areas?|districts?)|difficult\s+areas?)\b", t):
+        return "hilly_areas"
+    if re.search(r"\b(?:plain\s+areas?|plains\s+areas?|plains)\b", t):
+        return "plains_areas"
     if re.search(
         r"north\s*-?\s*eastern\s+(?:region|states?)|\bner\s+states?\b|\bassam\b|\bmeghalaya\b|\btripura\b|\bmanipur\b|\bmizoram\b|\bnagaland\b|\barunachal\b|\bsikkim\b",
         t,

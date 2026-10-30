@@ -353,22 +353,28 @@ if is_upload_mode:
 # BRANCH B: PRE-LOADED 7 FLAGSHIP SCHEMES
 # ==========================================
 else:
-    default_q, default_c = "", ""
-    if selected_scenario != "Custom Query / Claim":
-        default_q, default_c = scenarios[selected_scenario]
+    default_q = ""
+    default_c = ""
+    if "current_scenario" not in st.session_state or st.session_state.current_scenario != selected_scenario:
+        st.session_state.current_scenario = selected_scenario
+        if selected_scenario != "Custom Query / Claim" and selected_scenario in scenarios:
+            st.session_state.pre_q_input, st.session_state.pre_c_input = scenarios[selected_scenario]
+        elif selected_scenario == "Custom Query / Claim":
+            st.session_state.pre_q_input = ""
+            st.session_state.pre_c_input = ""
+    default_q = st.session_state.get("pre_q_input", "")
+    default_c = st.session_state.get("pre_c_input", "")
 
     tab_v, tab_q = st.tabs(["🛡️ Numerical Claim Verification", "❓ Question Answering (RAG)"])
 
     with tab_v:
         question_input = st.text_input(
             "User Question (Context):",
-            value=default_q,
             placeholder="e.g. What is the maximum subsidy or benefit under this scheme?",
             key="pre_q_input",
         )
         claim_input = st.text_area(
             "Candidate Numerical Claim to Verify:",
-            value=default_c,
             height=90,
             placeholder="e.g. Under the scheme guidelines, eligible beneficiaries receive...",
             key="pre_c_input",
