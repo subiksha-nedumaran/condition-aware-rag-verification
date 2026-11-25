@@ -12,7 +12,7 @@
 ## Phase 0: Initial Archive Audit & Foundation Verification (2026-10-29 / 2026-10-30)
 
 ### 1. Workspace Discovery
-- **Source Artifact:** Extracted from `FieldGuard 1.zip` (original download location: `C:\Users\Sanjay\Downloads\FieldGuard 1\FieldGuard_ag`).
+- **Source Artifact:** Extracted from the original project archive (local working directory: `C:\Users\subik\Downloads\FieldGuard_ag`).
 - **Target Workspace:** Established at `C:\FieldGuard_ag`.
 - **Git Repository:** Initialized Git repository in `C:\FieldGuard_ag`, tracked all baseline code, configs, processed corpora, and historical results.
 - **Dependency Audit:**
