@@ -1,4 +1,4 @@
-2# FieldGuard: Condition-Aware Verification of Numerical Claims in Government-Scheme Question Answering Using RAG
+2#Condition-Aware Verification of Numerical Claims in Government-Scheme Question Answering Using RAG
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [Automated tests](tests/)
@@ -8,7 +8,7 @@
 [![Schemes: 7 Flagship + Upload](https://img.shields.io/badge/schemes-7%20Flagship%20%2B%20Custom%20Upload-blueviolet.svg)](src/fieldguard/schemes/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-informational.svg)](LICENSE)
 
-**FieldGuard** is a research-oriented MSc Data Science capstone project developing and empirically evaluating a condition-aware numerical claim verification pipeline for Retrieval-Augmented Generation (RAG) in public policy question answering.
+**This project** is a research-oriented MSc Data Science capstone project developing and empirically evaluating a condition-aware numerical claim verification pipeline for Retrieval-Augmented Generation (RAG) in public policy question answering.
 
 The interface supports **7 major flagship Indian welfare schemes** alongside a **Dynamic Document Ingestion Engine** that parses arbitrary government policy documents (`.pdf` / `.txt`) for source-excerpt search with page citations and conservative document-only numerical comparisons.
 
@@ -51,7 +51,7 @@ A standard semantic or keyword-based RAG system retrieves the document and often
 An ordinary verifier checks whether `5.0%` appears in the retrieved passage and accepts the answer. **The number genuinely occurs in the document, but the claim is completely incorrect.**
 
 ### The Grounding Invariant
-FieldGuard enforces strict **condition-aware evidence grounding**:
+The proposed system enforces strict **condition-aware evidence grounding**:
 1. Numbers are never evaluated in isolation from their applicable conditions.
 2. Direct contradictions are distinguished from evidence belonging to the wrong context (`WRONG_CONTEXT`).
 3. Insufficient, ambiguous, or superseded evidence triggers conservative abstention (`UNVERIFIABLE`).
@@ -67,11 +67,11 @@ Evaluated on the held-out PMFBY benchmark ($n = 168$ claims, 114 non-supported c
 | **Baseline A: Retrieval Only** | 10.71% | 5.08% | 21.05% (24/114) | 23.68% | 45.45% | 14.29% | 1.573 ms |
 | **Baseline B: Numeric Only** | 44.64% | 32.35% | 81.58% (93/114) | 100.0% | 90.91% | 98.21% | 8.594 ms |
 | **Baseline C: Numeric + Basic Context** | 72.62% | 72.62% | 36.84% (42/114) | 23.68% | 27.27% | 87.50% | 4.386 ms |
-| **FieldGuard Full** | **94.05%** | **94.11%** | **2.63% (3/114)** | **0.00%** | **0.00%** | **82.14%** | **3.222 ms** |
+| **Proposed System (Full) Full** | **94.05%** | **94.11%** | **2.63% (3/114)** | **0.00%** | **0.00%** | **82.14%** | **3.222 ms** |
 
-Timing values above come from the saved verification_results.csv run and exclude retrieval; FieldGuard’s saved mean end-to-end latency is 40.279 ms. Timings vary by hardware and cache state.
+Timing values above come from the saved verification_results.csv run and exclude retrieval; The system's saved mean end-to-end latency is 40.279 ms. Timings vary by hardware and cache state.
 
-*Primary Result:* FieldGuard reduces the false-support rate from **81.58%** in numeric-only and **36.84%** in basic context down to **2.63%**, while maintaining high classification accuracy (**94.05%**) and high answer coverage (**82.14%**).
+*Primary Result:* The proposed system reduces the false-support rate from **81.58%** in numeric-only and **36.84%** in basic context down to **2.63%**, while maintaining high classification accuracy (**94.05%**) and high answer coverage (**82.14%**).
 
 ---
 
@@ -79,7 +79,7 @@ Evaluation scope: the saved PM-KISAN held-out run reports 42.50% accuracy and 15
 
 ## 3. The Four Primary Verdicts
 
-FieldGuard categorizes claims into four mutually exclusive, deterministic verdict labels:
+The proposed system categorizes claims into four mutually exclusive, deterministic verdict labels:
 
 ```mermaid
 flowchart TD
@@ -103,7 +103,7 @@ flowchart TD
 ## 4. Repository Structure
 
 ```text
-FieldGuard_ag/
+Project-root/
 ├── pyproject.toml              # Build backend, dependencies, and packaging metadata
 ├── requirements.txt            # Dependency lower bounds
 ├── README.md                   # Comprehensive project documentation
@@ -146,7 +146,7 @@ FieldGuard_ag/
 │   ├── evidence_schema.py      # Typed dataclass schemas for evidence and claims
 │   ├── evidence_store.py       # JSONL evidence store and verified rule repository
 │   ├── verdicts.py             # Verdict enum and decision finalization logic
-│   ├── verifier.py             # FieldGuardVerifier 10-step verification engine
+│   ├── verifier.py             # 10-step numerical claim verification engine
 │   ├── retrieval/              # Semantic, Lexical (BM25), Table, and Hybrid (RRF) retrievers
 │   └── evaluation/             # Metrics, bootstrap CIs, ablations, error analysis
 └── tests/                      # Automated tests (run pytest for current count)
@@ -175,7 +175,7 @@ Run the command above for the current test count and timing. Tests need the embe
 
 ## 6. Command-Line Interface (CLI)
 
-FieldGuard provides a unified command-line interface (`python -m fieldguard.cli`):
+The proposed system provides a unified command-line interface (`python -m fieldguard.cli`):
 
 ### Validate Source Manifest
 ```powershell
@@ -199,7 +199,7 @@ python -m fieldguard.cli verify --claim "Under the 2023 PMFBY operational guidel
 
 Output:
 ```text
-=== FieldGuard Numerical Claim Verification ===
+=== Numerical Claim Verification ===
 Claim   : Under the 2023 PMFBY operational guidelines, the maximum farmer premium for Kharif food grains is 2.0% of Sum Insured.
 Verdict : SUPPORTED
 Reason  : Claim is SUPPORTED by verified rule RULE_OG2023_PREM_KHARIF_FOOD_OILSEED in EV_DOC_PMFBY_OG_2023_P4_TBL_OG2023_PREMIUM_RATES_R1.
@@ -233,7 +233,7 @@ python -m fieldguard.cli evaluate errors --split test
 
 ## 7. Next-Level Enterprise Web Platform & Live Browser Testing
 
-FieldGuard features a modern, data-dense web platform powered by a decoupled **FastAPI** backend and an **Enterprise Single-Page Application (SPA)** built to UI/UX Pro Max specifications.
+The proposed system features a modern, data-dense web platform powered by a decoupled **FastAPI** backend and an **Enterprise Single-Page Application (SPA)** built to UI/UX Pro Max specifications.
 
 ### Launch Next-Level Web Application
 `powershell
@@ -246,7 +246,7 @@ Open **http://localhost:8501** in your browser. The platform includes:
   - **10-Step Deterministic Gates Checklist**: Granular pass/fail breakdown across units, scope, frequency, exclusions, temporal validity, and provenance.
   - **Official Audit Certificate**: Cryptographically verifiable JSON certificate with SHA-256 provenance hash and print/PDF export.
 - **Grounded Policy Q&A**: Natural language inquiry with physical PDF page numbers and paragraph citations.
-- **Evaluation Benchmark Leaderboard**: Live empirical comparison of FieldGuard (94.05% accuracy, 2.63% FSR) vs. RAG baseline pipelines.
+- **Evaluation Benchmark Leaderboard**: Live empirical comparison of the proposed system (94.05% accuracy, 2.63% FSR) vs. RAG baseline pipelines.
 - **Policy Rules & Corpus Explorer**: Searchable statutory rule table covering all 7 flagship schemes (PMFBY, PM-KISAN, MGNREGS, PM-JAY, PMAY-G, PM-KUSUM, PMMY).
 - **Dynamic Custom Document Ingestion Modal**: Drag-and-drop ingestion of arbitrary government scheme PDFs or TXT guidelines with live session banner and instant verification.
 - **Dark / Light Theme Engine**: Seamless glassmorphic visual presentation with typography pairing (Plus Jakarta Sans & Fira Code) and Lucide SVG icons.
