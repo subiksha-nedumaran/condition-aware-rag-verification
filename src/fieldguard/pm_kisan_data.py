@@ -905,4 +905,31 @@ def get_canonical_pm_kisan_rules() -> list[StructuredRuleRecord]:
             frequency="annual",
         ),
     ]
+    # Clause 1.1, Clause 2.1, Clause 3.1, and the June 2019 PIB release explicitly state universal
+    # landholder eligibility for the Rs 6,000 annual benefit and instalment schedule.
+    from dataclasses import replace
+    for rule in list(rules):
+        if rule.rule_id in ("RULE_PMKISAN_ANNUAL_BENEFIT_6K", "RULE_PMKISAN_INSTALMENT_AMOUNT_2K"):
+            rules.append(replace(rule, rule_id=rule.rule_id + "_PROSE",
+                evidence_id="EV_DOC_PMKISAN_OG_2020_P2_CHUNK_1",
+                section="Clause 2.1", table_id=None, row_id=None))
+        if rule.rule_id == "RULE_PMKISAN_ANNUAL_BENEFIT_6K":
+            rules.append(replace(rule, rule_id=rule.rule_id + "_CLAUSE_1_1",
+                evidence_id="EV_DOC_PMKISAN_OG_2020_P1_CHUNK_1",
+                physical_pdf_page=1, printed_page="1",
+                section="Clause 1.1", table_id=None, row_id=None))
+            rules.append(replace(rule, rule_id=rule.rule_id + "_ELIGIBILITY_PROSE",
+                evidence_id="EV_DOC_PMKISAN_OG_2020_P3_CHUNK_1",
+                physical_pdf_page=3, printed_page="3",
+                section="Clause 3.1", table_id=None, row_id=None))
+            rules.append(replace(rule, rule_id=rule.rule_id + "_PIB_JUN2019",
+                evidence_id="EV_DOC_PMKISAN_PIB_JUN2019_P1_CHUNK_1",
+                source_document_id="DOC_PMKISAN_PIB_JUN2019",
+                physical_pdf_page=1, printed_page="1",
+                section="Cabinet Decision Summary", table_id=None, row_id=None))
+        if rule.rule_id == "RULE_PMKISAN_INSTALMENTS_PER_YEAR_3":
+            rules.append(replace(rule, rule_id=rule.rule_id + "_CLAUSE_1_1",
+                evidence_id="EV_DOC_PMKISAN_OG_2020_P1_CHUNK_1",
+                physical_pdf_page=1, printed_page="1",
+                section="Clause 1.1", table_id=None, row_id=None))
     return rules

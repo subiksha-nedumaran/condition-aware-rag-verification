@@ -30,21 +30,33 @@ class PMKisanScheme(BaseScheme):
         "instalments_per_year",
         "instalment_period_months",
         "landholding_eligibility_cap_ha",
+        "landholding_eligibility_cap_acres_hist",
         "mandatory_ekyc_requirement",
         "statutory_exclusion",
+        "statutory_exclusion_pension_threshold",
         "aadhaar_seeding_requirement",
+        "estimated_national_beneficiary_coverage",
+        "admin_expense_share",
+        "fund_allocation",
     ]
 
     # Standard exclusion categories defined in PM-KISAN Operational Guidelines
     STATUTORY_EXCLUSIONS = {
         "institutional_landholder",
         "constitutional_post_holder",
+        "public_representative",
         "former_present_minister_mp_mla",
         "former_present_mayor_zilla_panchayat_chairperson",
         "government_employee",
         "pensioner_ge_10000",
         "income_tax_payee",
         "registered_professional",
+    }
+
+    OUT_OF_SCOPE_ENTITIES = {
+        "non_agricultural_traders",
+        "agricultural_trainees",
+        "agricultural_universities",
     }
 
     # Ineligible farmer groups that do not own cultivable land
@@ -73,6 +85,11 @@ class PMKisanScheme(BaseScheme):
         missing: list[str] = []
         beneficiary = context_dict.get("beneficiary_type") or context_dict.get("entity_scope")
         exclusion = context_dict.get("exclusion_category")
+
+        if rule_parameter is None:
+            missing.append("rule_parameter")
+        if beneficiary in self.OUT_OF_SCOPE_ENTITIES:
+            missing.append("unsupported_beneficiary_scope")
 
         if rule_parameter in ("annual_income_support", "instalment_amount"):
             if beneficiary is None:
@@ -106,10 +123,36 @@ class PMKisanScheme(BaseScheme):
         claimed_exclusion = claimed_context.get("exclusion_category")
         rule_exclusions = rule_context.get("exclusions", [])
 
+        switches = enable_switches or {}
+        enable_cat = switches.get("enable_crop_category_matching", True)
+        enable_freq = switches.get("enable_season_matching", True)
+        enable_qual = switches.get("enable_qualification_matching", True)
+
         # 1. Beneficiary category matching
-        if claimed_beneficiary is not None and rule_beneficiary is not None:
+        if enable_cat and claimed_beneficiary is not None and rule_beneficiary is not None:
+            pension_cats = {"pensioners", "retired_pensioners", "pensioner_ge_10000"}
             if claimed_beneficiary == rule_beneficiary:
                 # Same category matches directly (e.g. tenant_farmer to tenant_farmer)
+                pass
+            elif claimed_beneficiary in pension_cats and rule_beneficiary in pension_cats:
+                pass
+            elif (
+                not enable_qual
+                and rule_beneficiary == "all_landholding_farmers"
+                and claimed_beneficiary in self.STATUTORY_EXCLUSIONS
+            ):
+                # Without qualification/statutory-exclusion checking, higher-income landholders
+                # match basic landholding farmer context.
+                pass
+            elif (
+                rule_parameter in ("landholding_eligibility_cap_ha", "landholding_eligibility_cap_acres_hist")
+                and rule_beneficiary == "small_and_marginal_farmers"
+                and claimed_beneficiary in (
+                    "all_landholding_farmers",
+                    "small_and_marginal_farmers",
+                    "landholding_farmer_family",
+                )
+            ):
                 pass
             elif claimed_beneficiary in self.NON_LANDHOLDING_INELIGIBLE and rule_beneficiary == "all_landholding_farmers":
                 reasons.append(
@@ -131,11 +174,14 @@ class PMKisanScheme(BaseScheme):
                     f"beneficiary_mismatch(claimed={claimed_beneficiary}, rule={rule_beneficiary})"
                 )
 
-        # 2. Statutory exclusion checks
+        # 2. Statutory exclusion checks (qualification matching)
         excl_cat = claimed_exclusion or (claimed_beneficiary if claimed_beneficiary in self.STATUTORY_EXCLUSIONS else None)
-        if excl_cat is not None:
+        if enable_qual and excl_cat is not None:
             if excl_cat in self.STATUTORY_EXCLUSIONS:
-                if rule_beneficiary == excl_cat:
+                if rule_beneficiary == excl_cat or (
+                    excl_cat == "pensioner_ge_10000"
+                    and rule_beneficiary in {"pensioners", "retired_pensioners", "pensioner_ge_10000"}
+                ):
                     pass
                 elif rule_beneficiary == "all_landholding_farmers":
                     reasons.append(
@@ -143,7 +189,14 @@ class PMKisanScheme(BaseScheme):
                     )
 
         # 3. Frequency matching (annual vs per instalment / four-monthly)
-        if claimed_freq is not None and rule_freq is not None:
+        if (
+            enable_freq
+            and rule_parameter in ("annual_income_support", "instalment_amount")
+            and rule_beneficiary not in self.NON_LANDHOLDING_INELIGIBLE
+            and rule_beneficiary not in self.STATUTORY_EXCLUSIONS
+            and claimed_freq is not None
+            and rule_freq is not None
+        ):
             norm_c_freq = "per_instalment" if claimed_freq in ("per_instalment", "four_monthly") else claimed_freq
             norm_r_freq = "per_instalment" if rule_freq in ("per_instalment", "four_monthly") else rule_freq
             if norm_c_freq != norm_r_freq:

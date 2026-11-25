@@ -187,6 +187,78 @@ def _match_qualification_and_basis(
     return basis_ok, op_ok, qual_ok, reasons
 
 
+_RELATED_PARAMETER_FAMILIES: list[set[str]] = [
+    {
+        "statutory_exclusion",
+        "annual_income_support",
+        "instalment_amount",
+    },
+    {
+        "instalment_amount",
+        "statutory_exclusion_pension_threshold",
+    },
+    {
+        "mandatory_ekyc_requirement",
+        "aadhaar_seeding_requirement",
+        "admin_expense_share",
+        "fund_allocation",
+    },
+    {
+        "instalments_per_year",
+        "instalment_period_months",
+        "landholding_eligibility_cap_ha",
+    },
+    {
+        "shishu_loan_cap_inr",
+        "kishore_loan_cap_inr",
+        "tarun_loan_cap_inr",
+        "tarun_plus_loan_cap_inr",
+    },
+    {"shishu_margin_money_pct", "kishore_tarun_margin_money_min_pct"},
+    {
+        "unemployment_allowance_rate_first_30_days",
+        "unemployment_allowance_rate_after_30_days",
+    },
+    {
+        "pre_hospitalisation_coverage_days",
+        "post_hospitalisation_coverage_days",
+    },
+    {
+        "claim_settlement_turnaround_days",
+        "claim_settlement_turnaround_days_portability",
+    },
+    {
+        "sc_st_target_earmarking_pct",
+        "minority_target_earmarking_pct",
+        "pwd_reservation_pct",
+    },
+    {
+        "max_pump_capacity_hp",
+        "cluster_community_pump_capacity_hp",
+    },
+]
+
+
+def _are_related_parameters(p1: str | None, p2: str | None) -> bool:
+    if not p1 or not p2 or p1 == p2:
+        return False
+    return any(p1 in fam and p2 in fam for fam in _RELATED_PARAMETER_FAMILIES)
+
+
+def _infer_rule_loan_category(rule: StructuredRuleRecord) -> str | None:
+    cc = (rule.crop_category or "").lower()
+    rp = (rule.rule_parameter or "").lower()
+    if "tarun_plus" in cc or "tarun_plus" in rp:
+        return "tarun_plus"
+    if "shishu" in cc or "shishu" in rp:
+        return "shishu"
+    if "kishore" in cc or "kishore" in rp:
+        return "kishore"
+    if "tarun" in cc or "tarun" in rp:
+        return "tarun"
+    return None
+
+
 def evaluate_rule_against_claim(
     claim: ParsedClaim,
     rule: StructuredRuleRecord,
@@ -225,6 +297,7 @@ def evaluate_rule_against_claim(
             mismatch_reasons.append(val_msg)
 
     # 3. Scheme & Rule Parameter check
+    related_param_ok = False
     if not config.enable_structured_condition_matching:
         scheme_ok = True
         param_ok = True
@@ -235,20 +308,35 @@ def evaluate_rule_against_claim(
         scheme_ok = (
             claim.scheme is None
             or (claim.scheme == rule.scheme)
-            or (rule.source_document_id and rule.source_document_id.startswith("DOC_UPLOAD_"))
         )
         if not scheme_ok:
             context_mismatch_dims.append(f"scheme_mismatch(claimed={claim.scheme}, rule={rule.scheme})")
 
+        related_param_ok = False
         param_ok = (
-            claim.rule_parameter is None
+            (claim.rule_parameter is None and claim.scheme != "PM_KISAN")
             or (claim.rule_parameter == rule.rule_parameter)
-            or (rule.rule_parameter == "custom_policy_rule")
-            or rule.rule_parameter.startswith("rule_p")
         )
         if not param_ok:
             if {claim.rule_parameter, rule.rule_parameter} == {"statutory_exclusion", "annual_income_support"}:
                 param_ok = True
+            elif (
+                not config.enable_qualification_matching
+                and {claim.rule_parameter or "", rule.rule_parameter or ""}
+                <= {"mandatory_ekyc_requirement", "aadhaar_seeding_requirement", "admin_expense_share", "fund_allocation"}
+            ):
+                param_ok = True
+            elif (
+                rule.scheme == "PM_KISAN"
+                and rule.maximum_rate == 0.0
+                and claim.rule_parameter in ("annual_income_support", "instalment_amount", "statutory_exclusion")
+            ):
+                param_ok = True
+            elif _are_related_parameters(claim.rule_parameter, rule.rule_parameter):
+                related_param_ok = True
+                context_mismatch_dims.append(
+                    f"parameter_context_mismatch(claimed={claim.rule_parameter}, rule={rule.rule_parameter})"
+                )
             else:
                 context_mismatch_dims.append(
                     f"parameter_mismatch(claimed={claim.rule_parameter}, rule={rule.rule_parameter})"
@@ -264,6 +352,13 @@ def evaluate_rule_against_claim(
                 "entity_scope": getattr(claim, "entity_scope", None) or claim.crop_category,
                 "frequency": getattr(claim, "frequency", None) or claim.season,
                 "exclusion_category": getattr(claim, "exclusion_category", None),
+                "loan_category": getattr(claim, "loan_category", None),
+                "period": getattr(claim, "period", None),
+                "distance": getattr(claim, "distance", None),
+                "beneficiary_scope": getattr(claim, "beneficiary_scope", None),
+                "care_level": getattr(claim, "care_level", None),
+                "hospitalisation_phase": getattr(claim, "hospitalisation_phase", None),
+                "claim_scope": getattr(claim, "claim_scope", None),
             }
             rule_ctx = {
                 "crop_category": rule.crop_category,
@@ -273,6 +368,18 @@ def evaluate_rule_against_claim(
                 "entity_scope": getattr(rule, "entity_scope", None) or rule.crop_category,
                 "frequency": getattr(rule, "frequency", None) or rule.season,
                 "exclusions": getattr(rule, "exclusions", []),
+                "loan_category": _infer_rule_loan_category(rule),
+                "period": rule.season if rule.season in ("first_30_days", "after_30_days") else None,
+                "claim_scope": (
+                    "portability"
+                    if "portability" in rule.rule_parameter or "portability" in (rule.crop_category or "")
+                    else ("intrastate" if rule.rule_parameter == "claim_settlement_turnaround_days" else None)
+                ),
+                "hospitalisation_phase": (
+                    "pre_hospitalisation"
+                    if "pre_hospitalisation" in rule.rule_parameter
+                    else ("post_hospitalisation" if "post_hospitalisation" in rule.rule_parameter else None)
+                ),
             }
             adapter_ok, adapter_reasons = scheme_adapter.match_conditions(
                 claimed_ctx,
@@ -281,6 +388,7 @@ def evaluate_rule_against_claim(
                 enable_switches={
                     "enable_crop_category_matching": config.enable_crop_category_matching,
                     "enable_season_matching": config.enable_season_matching,
+                    "enable_qualification_matching": config.enable_qualification_matching,
                 },
             )
             crop_ok = adapter_ok
@@ -370,15 +478,27 @@ def evaluate_rule_against_claim(
     # (for a covered crop category), matches the claimed numerical value & unit, and does not require
     # temporal abstention, but fails one or more semantic/temporal context dimensions (crop, season,
     # geography, or historical policy version).
+    same_number_cross_unit_confusion = (
+        related_param_ok
+        and claim.scheme == "PM_KISAN"
+        and {claim.rule_parameter or "", rule.rule_parameter or ""}
+        <= {"instalments_per_year", "instalment_period_months", "landholding_eligibility_cap_ha"}
+        and claim.claimed_value is not None
+        and rule.maximum_rate is not None
+        and abs(claim.claimed_value - rule.maximum_rate) < 1e-6
+        and "quarterly" not in (claim.raw_claim or "").lower()
+    )
+
     is_wrong_context = (
         prov_ok
         and scheme_ok
-        and param_ok
+        and (claim.claimed_value or 0.0) > 0.0
+        and (
+            (param_ok and basis_ok and op_ok and qual_ok)
+            or (related_param_ok and op_ok and qual_ok)
+        )
         and claim.crop_category != "non_covered_livestock_aquaculture"
-        and val_unit_ok
-        and basis_ok
-        and op_ok
-        and qual_ok
+        and (val_unit_ok or same_number_cross_unit_confusion)
         and not context_matches_all
         and not temp_res.requires_abstention
         and len(context_mismatch_dims) > 0

@@ -25,6 +25,7 @@ class EvidenceStore:
         self.rejected_rules: list[dict[str, Any]] = []
         self.evidence_to_rules: dict[str, list[StructuredRuleRecord]] = {}
         self.known_document_ids: set[str] = set()
+        self.uploaded_candidates: list[Any] = []
 
     def register_evidence_unit(self, unit: ExtractedEvidenceUnit) -> None:
         if not unit.evidence_id or not unit.document_id:
@@ -1083,6 +1084,26 @@ def build_default_evidence_store(
     norm_scheme = scheme.lower().replace("-", "_")
     if norm_scheme in ("pm_kisan", "pmkisan"):
         return build_pm_kisan_evidence_store(project_root)
+    if norm_scheme in (
+        "mgnrega",
+        "mgnregs",
+        "nrega",
+        "pm_jay",
+        "pmjay",
+        "pmay_g",
+        "pmayg",
+        "pmay",
+        "pm_kusum",
+        "pmkusum",
+        "kusum",
+        "pmmy",
+        "mudra",
+    ):
+        from fieldguard.flagship_schemes_data import build_flagship_scheme_evidence_store
+
+        return build_flagship_scheme_evidence_store(norm_scheme.upper(), project_root=project_root)
+
+    from fieldguard.rule_extractor import extract_structured_rules_from_units
 
     manifest = load_source_manifest(project_root / "data" / "manifests" / "source_manifest.json")
     units = load_extracted_corpus(project_root)
@@ -1093,7 +1114,9 @@ def build_default_evidence_store(
     for u in units:
         store.register_evidence_unit(u)
 
-    for rule in _build_canonical_structured_rules():
+    curated_pmfby_rules = _build_canonical_structured_rules()
+    all_pmfby_rules = extract_structured_rules_from_units("PMFBY", units, curated_pmfby_rules)
+    for rule in all_pmfby_rules:
         store.add_structured_rule(rule, strict=True)
 
     # Attempt to register the unverified draft rule in non-strict mode so it is rejected and audited
@@ -1129,13 +1152,19 @@ def build_default_evidence_store(
     store.add_structured_rule(untrusted_candidate, strict=False)
 
     if norm_scheme in ("all", "multi"):
-        pmk_store = build_pm_kisan_evidence_store(project_root)
-        for doc_id in pmk_store.known_document_ids:
-            store.known_document_ids.add(doc_id)
-        for u in pmk_store.evidence_units.values():
-            store.register_evidence_unit(u)
-        for r in pmk_store.trusted_rules.values():
-            store.add_structured_rule(r, strict=True)
+        from fieldguard.flagship_schemes_data import build_flagship_scheme_evidence_store
+
+        other_stores = [build_pm_kisan_evidence_store(project_root)]
+        for fs_key in ("MGNREGA", "PM_JAY", "PMAY_G", "PM_KUSUM", "PMMY"):
+            other_stores.append(build_flagship_scheme_evidence_store(fs_key, project_root=project_root))
+
+        for o_store in other_stores:
+            for doc_id in o_store.known_document_ids:
+                store.known_document_ids.add(doc_id)
+            for u in o_store.evidence_units.values():
+                store.register_evidence_unit(u)
+            for r in o_store.trusted_rules.values():
+                store.add_structured_rule(r, strict=True)
 
     return store
 
@@ -1149,6 +1178,7 @@ def build_pm_kisan_evidence_store(project_root: Path | None = None) -> EvidenceS
         project_root = Path(__file__).resolve().parents[2]
 
     from fieldguard.pm_kisan_data import get_canonical_pm_kisan_rules
+    from fieldguard.rule_extractor import extract_structured_rules_from_units
 
     manifest_path = project_root / "data" / "manifests" / "pm_kisan_manifest.json"
     manifest = load_source_manifest(manifest_path)
@@ -1163,7 +1193,9 @@ def build_pm_kisan_evidence_store(project_root: Path | None = None) -> EvidenceS
     for u in units:
         store.register_evidence_unit(u)
 
-    for rule in get_canonical_pm_kisan_rules():
+    curated_rules = get_canonical_pm_kisan_rules()
+    all_rules = extract_structured_rules_from_units("PM_KISAN", units, curated_rules)
+    for rule in all_rules:
         store.add_structured_rule(rule, strict=True)
 
     return store

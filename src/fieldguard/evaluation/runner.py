@@ -1119,6 +1119,13 @@ def run_multi_scheme_experiment(
 
         store = build_pm_kisan_evidence_store(project_root)
         claims = load_pm_kisan_benchmark_claims(project_root, split=split)
+    elif clean_scheme in ("mgnrega", "pm_jay", "pmay_g", "pm_kusum", "pmmy"):
+        from fieldguard.benchmarks import load_flagship_scheme_benchmark
+        from fieldguard.flagship_schemes_data import build_flagship_scheme_evidence_store
+
+        scheme_code = clean_scheme.upper()
+        store = build_flagship_scheme_evidence_store(scheme_code)
+        claims = load_flagship_scheme_benchmark(scheme_code, project_root=project_root, split=split)
     else:
         store = build_default_evidence_store(project_root)
         claims = load_benchmark_claims(project_root, split=split)

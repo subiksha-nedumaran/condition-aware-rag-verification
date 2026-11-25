@@ -114,4 +114,6 @@ def test_dynamic_document_ingestion_and_qa():
         candidate_claim="Eligible farmers receive 50 percent assistance for purchasing drones.",
         retrieved_items=ret_items,
     )
-    assert res.predicted_verdict == Verdict.SUPPORTED.value
+    # This paraphrase omits beneficiary restrictions and the monetary cap.
+    assert res.predicted_verdict == Verdict.UNVERIFIABLE.value
+    assert res.verification_scope == "uploaded_document_only"

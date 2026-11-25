@@ -76,7 +76,12 @@ def resolve_temporal_applicability(
         )
 
     # Case 2: Claim asks for full post-December 2025 / 2026 revised guidelines or unverified current policy
-    if req_ver in ("latest_current", "2026_revised_full_unverified", "2025_dec_full_guidelines_unverified"):
+    if req_ver in (
+        "latest_current",
+        "2026_revised_full_unverified",
+        "2025_dec_full_guidelines_unverified",
+        "2028_unverified_draft",
+    ):
         return TemporalResolutionResult(
             is_applicable=False,
             temporal_status="unresolved_latest_policy_version",
@@ -216,7 +221,34 @@ def resolve_temporal_applicability(
                 is_version_mismatch=True,
             )
 
-    # Case 8: Flagship schemes and user-uploaded custom policy documents
+    # Case 8: Historical Indira Awaas Yojana (IAY) vs active PMAY-G
+    if rule.policy_era in ("historical_iay", "iay_historical_pre2016") or req_ver == "historical_iay":
+        if req_ver == "historical_iay":
+            if rule.policy_era in ("historical_iay", "iay_historical_pre2016"):
+                return TemporalResolutionResult(
+                    is_applicable=True,
+                    temporal_status="matched_historical_iay_version",
+                    explanation="Rule matches historical Indira Awaas Yojana (IAY) norm.",
+                )
+            return TemporalResolutionResult(
+                is_applicable=False,
+                temporal_status="policy_version_mismatch_expected_iay",
+                explanation=f"Claim asks for historical IAY norm, but rule is from '{rule.policy_era}'.",
+                requires_abstention=False,
+                is_version_mismatch=True,
+            )
+        return TemporalResolutionResult(
+            is_applicable=False,
+            temporal_status="superseded_historical_iay_rule",
+            explanation=(
+                "Rule is from the superseded Indira Awaas Yojana (IAY, 20 sq.m prior to 2016) "
+                "and cannot establish a current PMAY-G (25 sq.m) claim."
+            ),
+            requires_abstention=False,
+            is_version_mismatch=True,
+        )
+
+    # Case 9: Flagship schemes and user-uploaded custom policy documents
     if (
         rule.source_document_id.startswith("DOC_UPLOAD_")
         or rule.policy_era in ("uploaded_active", "mgnrega_act", "pmjay_current", "pmayg_current", "pmkusum_current", "pmmy_current")

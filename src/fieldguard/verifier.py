@@ -19,6 +19,8 @@ from fieldguard.metadata import ExtractedEvidenceUnit
 from fieldguard.numeric_normalizer import compare_numeric_values, extract_all_numeric_mentions
 from fieldguard.schemes import get_scheme_adapter
 from fieldguard.verdicts import Verdict
+from fieldguard.uploaded_verification import compare_uploaded_claim, evaluate_uploaded_claim, is_uploaded
+from fieldguard.compound_claims import pm_kisan_components
 
 
 @dataclass
@@ -36,7 +38,7 @@ class VerifierConfig:
     enable_evidence_sufficiency: bool = True
     retrieval_method: str = "hybrid"
     top_k: int = 5
-    retrieval_only_min_score: float = 0.10
+    retrieval_only_min_score: float = 0.01
 
 
 @dataclass
@@ -58,6 +60,13 @@ class VerificationPrediction:
     verification_latency_ms: float = 0.0
     retrieval_latency_ms: float = 0.0
     config_name: str = "fieldguard_full"
+    verification_scope: str = "official_policy"
+    component_results: list[dict[str, Any]] = field(default_factory=list)
+    matched_passage: str | None = None
+    matched_candidate_rule: dict[str, Any] | None = None
+    matched_page: int | None = None
+    matched_score: float | None = None
+    verdict_reason_code: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -95,12 +104,20 @@ class FieldGuardVerifier:
         t0 = time.perf_counter()
         ret_method = retrieval_method or self.config.retrieval_method
 
-        # Step 1: Parse the question and candidate claim
-        parsed = (
-            pre_parsed_claim
-            if pre_parsed_claim is not None
-            else self.parser.parse(question=question, candidate_claim=candidate_claim)
-        )
+        # Step 1: Parse the question and candidate claim (inferring default_scheme if store is single-scheme)
+        known_schemes = {r.scheme for r in self.store.trusted_rules.values() if r.scheme}
+        default_scheme = next(iter(known_schemes)) if len(known_schemes) == 1 else None
+        if pre_parsed_claim is not None:
+            parsed = pre_parsed_claim
+        else:
+            try:
+                parsed = self.parser.parse(
+                    question=question,
+                    candidate_claim=candidate_claim,
+                    default_scheme=default_scheme,
+                )
+            except TypeError:
+                parsed = self.parser.parse(question=question, candidate_claim=candidate_claim)
 
         # Validate retrieved evidence IDs against the evidence store (never invent citations)
         valid_units: list[ExtractedEvidenceUnit] = []
@@ -121,7 +138,41 @@ class FieldGuardVerifier:
         matched_ev_ids = [u.evidence_id for u in valid_units]
 
         # Dispatch to comparison baseline if configured
-        if self.config.mode == "retrieval_only":
+        if any(is_uploaded(u) for u in valid_units) or (
+            self.store.evidence_units
+            and all(is_uploaded(u) for u in self.store.evidence_units.values())
+        ):
+            # Uploads never enter official-policy verification or permissive ablations.
+            upload_eval = evaluate_uploaded_claim(
+                candidate_claim, valid_units, list(self.store.evidence_units.values())
+            )
+            verdict = upload_eval["verdict"]
+            support = upload_eval["supporting_ids"]
+            contra = upload_eval["contradicting_ids"]
+            reason = upload_eval["reason"]
+            reason_code = upload_eval.get("reason_code")
+            pred = VerificationPrediction(
+                claim_id=claim_id,
+                predicted_verdict=verdict,
+                parsed_claim=parsed.to_dict(),
+                matched_evidence_ids=matched_ev_ids,
+                supporting_evidence_ids=support,
+                contradicting_evidence_ids=contra,
+                context_mismatch=upload_eval.get("context_mismatch", []),
+                temporal_status="uploaded_policy_applicability_unverified",
+                verification_rationale=(reason + " Comparison is limited to the uploaded document; "
+                                        "official provenance and current policy applicability are unverified."),
+                abstention_reason=(reason_code or "uploaded_conditions_not_established") if verdict == "UNVERIFIABLE" else None,
+                retrieval_method=ret_method,
+                latency_ms=0.0,
+                verification_scope="uploaded_document_only",
+                matched_passage=upload_eval.get("matched_passage"),
+                matched_candidate_rule=upload_eval.get("matched_candidate_rule"),
+                matched_page=upload_eval.get("matched_page"),
+                matched_score=upload_eval.get("matched_score"),
+                verdict_reason_code=reason_code,
+            )
+        elif self.config.mode == "retrieval_only":
             pred = self._run_baseline_a_retrieval_only(
                 claim_id=claim_id,
                 parsed=parsed,
@@ -137,13 +188,26 @@ class FieldGuardVerifier:
                 ret_method=ret_method,
             )
         else:
-            pred = self._run_fieldguard_pipeline(
-                claim_id=claim_id,
-                parsed=parsed,
-                valid_units=valid_units,
-                invalid_ev_ids=invalid_ev_ids,
-                ret_method=ret_method,
-            )
+            components = pm_kisan_components(parsed) if self.config.mode == "fieldguard" else []
+            predictions = [self._run_fieldguard_pipeline(
+                claim_id=claim_id, parsed=part, valid_units=valid_units,
+                invalid_ev_ids=invalid_ev_ids, ret_method=ret_method,
+            ) for part in (components or [parsed])]
+            pred = predictions[0]
+            if components:
+                # A conjunction is supported only when every numerical component is supported.
+                priority = {"CONTRADICTED": 0, "WRONG_CONTEXT": 1, "UNVERIFIABLE": 2, "SUPPORTED": 3}
+                pred = min(predictions, key=lambda item: priority[item.predicted_verdict])
+                details = [{"parameter": part.rule_parameter, "value": part.claimed_value,
+                            "unit": part.claimed_unit, "verdict": result.predicted_verdict,
+                            "rationale": result.verification_rationale}
+                           for part, result in zip(components, predictions)]
+                pred.component_results = details
+                pred.parsed_claim = parsed.to_dict()
+                pred.supporting_evidence_ids = sorted({eid for result in predictions for eid in result.supporting_evidence_ids})
+                pred.contradicting_evidence_ids = sorted({eid for result in predictions for eid in result.contradicting_evidence_ids})
+                pred.verification_rationale = "Checked each numerical component: " + "; ".join(
+                    f"{row['parameter'] or 'unresolved number'}={row['value']} {row['unit']}: {row['verdict']}" for row in details)
 
         ver_ms = (time.perf_counter() - t0) * 1000.0
         pred.verification_latency_ms = round(ver_ms, 4)
@@ -329,6 +393,126 @@ class FieldGuardVerifier:
             return Verdict.CONTRADICTED.value, None
         return raw_verdict.value, None
 
+    def _infer_parameter_from_retrieval(
+        self,
+        parsed: ParsedClaim,
+        valid_units: list[ExtractedEvidenceUnit],
+    ) -> None:
+        """
+        Retrieval-guided fallback for inferring `rule_parameter` when the deterministic parser
+        could not pick a parameter from keywords alone. Compares the claimed number, unit, and
+        topic keywords against candidate rules in top-k retrieved passages and scheme store.
+        """
+        if parsed.claimed_value is None or parsed.claimed_unit is None:
+            return
+        if parsed.scheme == "PM_KISAN":
+            return
+
+        known_params_for_scheme = {
+            r.rule_parameter
+            for r in self.store.trusted_rules.values()
+            if parsed.scheme is None or r.scheme == parsed.scheme
+        }
+        if parsed.rule_parameter is not None and parsed.rule_parameter in known_params_for_scheme:
+            return
+
+        candidate_rules = []
+        seen_ids: set[str] = set()
+        for u in valid_units:
+            for r in self.store.get_rules_for_evidence(u.evidence_id):
+                if r.rule_id not in seen_ids and (parsed.scheme is None or r.scheme == parsed.scheme):
+                    seen_ids.add(r.rule_id)
+                    candidate_rules.append((r, u.text, True))
+        for r in self.store.trusted_rules.values():
+            if r.rule_id not in seen_ids and (parsed.scheme is None or r.scheme == parsed.scheme):
+                seen_ids.add(r.rule_id)
+                u_obj = self.store.get_evidence_unit(r.evidence_id)
+                candidate_rules.append((r, u_obj.text if u_obj else "", False))
+
+        if not candidate_rules:
+            return
+
+        stopwords = {
+            "under", "scheme", "yojana", "pradhan", "mantri", "mahatma", "gandhi",
+            "guidelines", "operational", "act", "percent", "percentage", "rupees",
+            "inr", "rs", "lakh", "lakhs", "crore", "days", "years", "months", "hours",
+            "eligible", "farmers", "farmer", "households", "household", "family",
+            "families", "beneficiaries", "beneficiary", "provided", "receive",
+            "received", "entitled", "maximum", "minimum", "upto", "mgnrega", "mgnregs",
+            "nrega", "pmjay", "ayushman", "bharat", "pmay", "gramin", "kusum", "pmmy",
+            "mudra", "pmfby", "kisan", "samman", "nidhi", "what", "much", "many",
+            "is", "the", "of", "in", "for", "to", "and", "or", "per", "from", "with",
+            "are", "can", "be", "at", "by", "that", "this", "an", "as", "on", "all",
+            "total", "amount", "rate", "limit", "cap", "number", "value", "financial",
+            "assistance", "support", "benefit", "government", "india", "national",
+            "subsidy", "grant", "allowance", "registered", "workers", "completion",
+            "price", "guaranteed", "season", "annual", "monthly", "norm", "statutory",
+            "provision", "guideline", "official", "rule",
+        }
+        claim_text = f"{parsed.raw_question} {parsed.raw_claim}".lower()
+        claim_tokens = {
+            tok for tok in re.findall(r"[a-z]{3,}", claim_text) if tok not in stopwords
+        }
+        if not claim_tokens:
+            return
+
+        adapter = get_scheme_adapter(parsed.scheme) if parsed.scheme else None
+        param_desc_map: dict[str, str] = {}
+        if adapter and hasattr(adapter, "parameters"):
+            for p in adapter.parameters:
+                if hasattr(p, "name") and hasattr(p, "description"):
+                    param_desc_map[p.name] = p.description.lower()
+
+        best_param: str | None = None
+        best_score = 0.0
+
+        for r, u_text, in_top_k in candidate_rules:
+            val_ok, msg = compare_numeric_values(
+                parsed.claimed_value,
+                parsed.claimed_unit,
+                r.maximum_rate,
+                r.unit,
+                allowed_values=r.allowed_values,
+            )
+            if "unit mismatch" in msg.lower():
+                continue
+
+            param_text = " ".join(
+                [
+                    r.rule_parameter.replace("_", " "),
+                    (r.basis or "").replace("_", " "),
+                    (r.qualifier or "").replace("_", " "),
+                    param_desc_map.get(r.rule_parameter, ""),
+                ]
+            ).lower()
+            param_tokens = {
+                tok for tok in re.findall(r"[a-z]{3,}", param_text) if tok not in stopwords
+            }
+            unit_tokens = {
+                tok for tok in re.findall(r"[a-z]{3,}", u_text.lower()) if tok not in stopwords
+            }
+            param_overlap = len(claim_tokens & param_tokens)
+            passage_overlap = len(claim_tokens & unit_tokens)
+            if param_overlap == 0:
+                continue
+
+            score = (param_overlap * 3.0) + (passage_overlap * 1.0)
+            if in_top_k:
+                score += 1.5
+            if val_ok:
+                score += 2.0
+
+            if score > best_score:
+                best_score = score
+                best_param = r.rule_parameter
+
+        if best_param is not None and best_score >= 3.0:
+            parsed.rule_parameter = best_param
+            if "rule_parameter" in parsed.uncertain_fields:
+                parsed.uncertain_fields.remove("rule_parameter")
+            if not parsed.uncertain_fields and parsed.parse_status == "partial_uncertain":
+                parsed.parse_status = "success"
+
     def _run_fieldguard_pipeline(
         self,
         claim_id: str,
@@ -348,7 +532,7 @@ class FieldGuardVerifier:
         if parsed.parse_status == "failed_malformed" or parsed.claimed_value is None or parsed.claimed_unit is None:
             v_str, abs_reason = self._finalize_verdict(
                 Verdict.UNVERIFIABLE,
-                "malformed_or_non_numerical_claim",
+                "parser_failed",
                 supporting_ids,
                 contradicting_ids,
                 valid_units,
@@ -363,7 +547,7 @@ class FieldGuardVerifier:
                 context_mismatch=[],
                 temporal_status="not_evaluated_malformed_claim",
                 verification_rationale=(
-                    "Claim parsing failed or numeric value/unit is corrupted/missing; "
+                    "Claim parsing failed or numeric value/unit is corrupted/missing (parser_failed); "
                     "malformed claims cannot bypass verification."
                 ),
                 abstention_reason=abs_reason,
@@ -371,16 +555,29 @@ class FieldGuardVerifier:
                 latency_ms=0.0,
             )
 
+        # Infer scheme from evidence store or retrieved units when omitted in claim
+        if parsed.scheme is None:
+            known_schemes = {r.scheme for r in self.store.trusted_rules.values() if r.scheme}
+            if len(known_schemes) == 1:
+                parsed.scheme = next(iter(known_schemes))
+            else:
+                ret_schemes = {
+                    r.scheme
+                    for u in valid_units
+                    for r in self.store.get_rules_for_evidence(u.evidence_id)
+                    if r.scheme
+                }
+                if len(ret_schemes) == 1:
+                    parsed.scheme = next(iter(ret_schemes))
+
+        # Fall back to retrieval-guided parameter inference if parser could not pick a parameter
+        self._infer_parameter_from_retrieval(parsed, valid_units)
+
         # Check if required contextual fields are uncertain/unspecified when condition matching is enabled
         if self.config.enable_structured_condition_matching:
             missing_context: list[str] = []
             if parsed.scheme is None:
-                # Infer scheme from evidence store if all trusted rules belong to a single scheme
-                known_schemes = {r.scheme for r in self.store.trusted_rules.values() if r.scheme}
-                if len(known_schemes) == 1:
-                    parsed.scheme = next(iter(known_schemes))
-                else:
-                    missing_context.append("scheme")
+                missing_context.append("scheme")
 
             if parsed.scheme is not None:
                 scheme_adapter = get_scheme_adapter(parsed.scheme)
@@ -404,14 +601,21 @@ class FieldGuardVerifier:
                     )
                     if not val_res.is_valid:
                         missing_context.extend(val_res.missing_fields)
+                    if parsed.rule_parameter is None and "rule_parameter" not in missing_context:
+                        missing_context.append("rule_parameter")
                 else:
                     if parsed.rule_parameter is None:
                         missing_context.append("rule_parameter")
 
             if missing_context:
+                diag_reason = (
+                    "no_rule_for_parameter"
+                    if missing_context == ["rule_parameter"]
+                    else f"missing_required_claim_conditions({','.join(missing_context)})"
+                )
                 v_str, abs_reason = self._finalize_verdict(
                     Verdict.UNVERIFIABLE,
-                    f"missing_required_claim_conditions({','.join(missing_context)})",
+                    diag_reason,
                     supporting_ids,
                     contradicting_ids,
                     valid_units,
@@ -426,8 +630,8 @@ class FieldGuardVerifier:
                     context_mismatch=[],
                     temporal_status="ambiguous_claim_context",
                     verification_rationale=(
-                        f"Claim omits required contextual condition(s) {missing_context}; "
-                        f"FieldGuard preserves uncertainty rather than inventing missing conditions."
+                        f"Claim cannot be verified (reason={diag_reason}, missing={missing_context}); "
+                        f"FieldGuard preserves uncertainty rather than inventing missing conditions or rules."
                     ),
                     abstention_reason=abs_reason,
                     retrieval_method=ret_method,
@@ -630,12 +834,13 @@ class FieldGuardVerifier:
             "latest_current",
             "2026_revised_full_unverified",
             "2025_dec_full_guidelines_unverified",
+            "2028_unverified_draft",
         ):
             t_status = "unresolved_latest_policy_version"
             t_expl = "Requested latest/post-Dec-2025 full policy version cannot be established from historical 2023 guidelines."
             v_str, abs_reason = self._finalize_verdict(
                 Verdict.UNVERIFIABLE,
-                t_status,
+                "temporal_ambiguity",
                 supporting_ids,
                 contradicting_ids,
                 valid_units,
@@ -649,7 +854,7 @@ class FieldGuardVerifier:
                 contradicting_evidence_ids=contradicting_ids,
                 context_mismatch=[],
                 temporal_status=t_status,
-                verification_rationale=f"Temporal resolution requires abstention (UNVERIFIABLE): {t_expl}",
+                verification_rationale=f"Temporal resolution requires abstention (UNVERIFIABLE, reason=temporal_ambiguity): {t_expl}",
                 abstention_reason=abs_reason,
                 retrieval_method=ret_method,
                 latency_ms=0.0,
@@ -660,13 +865,25 @@ class FieldGuardVerifier:
         same_context_qual_or_basis_contradictions = [
             ev for ev in same_context_contradictions if ev.value_unit_match
         ]
+        direct_eligibility_exclusion_contradictions = [
+            ev
+            for ev in same_context_contradictions
+            if (
+                ev.rule_id.startswith("RULE_PMKISAN_EXCL_")
+                or ev.rule_id in ("RULE_PMKISAN_TENANT_INELIGIBLE", "RULE_PMKISAN_LABORER_INELIGIBLE")
+            )
+            and bool(re.search(r"\beligible\b", parsed.raw_claim or "", re.I))
+        ]
 
         # If the retrieved rule for the EXACT requested context matches the claimed number & unit
         # but contradicts its mandatory qualification, basis/denominator, or comparison operator,
         # it is a direct same-context contradiction (CONTRADICTED).
-        if same_context_qual_or_basis_contradictions:
-            contra_ids = sorted({ev.evidence_id for ev in same_context_qual_or_basis_contradictions})
-            c0 = same_context_qual_or_basis_contradictions[0]
+        if same_context_qual_or_basis_contradictions or direct_eligibility_exclusion_contradictions:
+            target_contras = (
+                same_context_qual_or_basis_contradictions or direct_eligibility_exclusion_contradictions
+            )
+            contra_ids = sorted({ev.evidence_id for ev in target_contras})
+            c0 = target_contras[0]
             return VerificationPrediction(
                 claim_id=claim_id,
                 predicted_verdict=Verdict.CONTRADICTED.value,
@@ -776,7 +993,7 @@ class FieldGuardVerifier:
             t_expl = temporal_abstentions[0].temporal_result.explanation
             v_str, abs_reason = self._finalize_verdict(
                 Verdict.UNVERIFIABLE,
-                t_status,
+                "temporal_ambiguity",
                 supporting_ids,
                 contradicting_ids,
                 valid_units,
@@ -790,7 +1007,7 @@ class FieldGuardVerifier:
                 contradicting_evidence_ids=contradicting_ids,
                 context_mismatch=[],
                 temporal_status=t_status,
-                verification_rationale=f"Temporal resolution requires abstention (UNVERIFIABLE): {t_expl}",
+                verification_rationale=f"Temporal resolution requires abstention (UNVERIFIABLE, reason=temporal_ambiguity): {t_expl}",
                 abstention_reason=abs_reason,
                 retrieval_method=ret_method,
                 latency_ms=0.0,
@@ -828,7 +1045,7 @@ class FieldGuardVerifier:
         # Absence of applicable evidence is UNVERIFIABLE, never CONTRADICTED!
         v_str, abs_reason = self._finalize_verdict(
             Verdict.UNVERIFIABLE,
-            "insufficient_or_missing_applicable_evidence",
+            "no_rule_for_parameter",
             supporting_ids,
             contradicting_ids,
             valid_units,
@@ -843,9 +1060,9 @@ class FieldGuardVerifier:
             context_mismatch=[],
             temporal_status="no_applicable_rule_in_retrieved_evidence",
             verification_rationale=(
-                "Retrieved evidence does not contain an applicable verified rule for the requested "
-                f"scheme ({parsed.scheme}), parameter ({parsed.rule_parameter}), season ({parsed.season}), "
-                f"and crop category ({parsed.crop_category}). Abstaining with UNVERIFIABLE."
+                "Retrieved evidence does not contain an applicable verified rule (reason=no_rule_for_parameter) "
+                f"for the requested scheme ({parsed.scheme}), parameter ({parsed.rule_parameter}), "
+                f"season ({parsed.season}), and crop category ({parsed.crop_category}). Abstaining with UNVERIFIABLE."
             ),
             abstention_reason=abs_reason,
             retrieval_method=ret_method,

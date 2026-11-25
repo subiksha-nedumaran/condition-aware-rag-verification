@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
 import time
 from typing import Any
 import uuid
@@ -45,6 +46,8 @@ STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
 # Load environment variables from .env
 def _load_env():
+    if "pytest" in sys.modules or os.environ.get("FIELDGUARD_DISABLE_LLM") == "1":
+        return
     env_file = PROJECT_ROOT / ".env"
     if env_file.exists():
         for line in env_file.read_text(encoding="utf-8").splitlines():
@@ -125,6 +128,8 @@ class ExplainRequest(BaseModel):
 
 
 def is_groq_available() -> bool:
+    if ("pytest" in sys.modules or os.environ.get("FIELDGUARD_DISABLE_LLM") == "1") and not os.environ.get("FIELDGUARD_ALLOW_TEST_LLM"):
+        return False
     return bool(os.environ.get("GROQ_API_KEY", "").strip())
 
 
@@ -202,7 +207,7 @@ SCHEME_METADATA = {
         "badge": "PMFBY",
         "icon": "shield-check",
         "description": "Comprehensive yield & weather insurance with crop-specific premium caps and mandatory qualifiers.",
-        "verified_rules": 33,
+        "verified_rules": 61,
     },
     "PM_KISAN": {
         "name": "PM Kisan Samman Nidhi",
@@ -210,7 +215,7 @@ SCHEME_METADATA = {
         "badge": "PM-KISAN",
         "icon": "banknote",
         "description": "Direct bank transfer of ₹6,000/year in 3 instalments with strict exclusions and mandatory eKYC.",
-        "verified_rules": 8,
+        "verified_rules": 30,
     },
     "MGNREGA": {
         "name": "Mahatma Gandhi NREGA",
@@ -218,7 +223,7 @@ SCHEME_METADATA = {
         "badge": "MGNREGS",
         "icon": "hard-hat",
         "description": "Statutory guarantee of 100 days unskilled manual work per rural household with 15-day timeline.",
-        "verified_rules": 3,
+        "verified_rules": 27,
     },
     "PM_JAY": {
         "name": "Ayushman Bharat PM-JAY",
@@ -226,7 +231,7 @@ SCHEME_METADATA = {
         "badge": "PM-JAY",
         "icon": "heart-pulse",
         "description": "₹5,00,000 annual secondary & tertiary health cover per family, 100% cashless with no family cap.",
-        "verified_rules": 3,
+        "verified_rules": 20,
     },
     "PMAY_G": {
         "name": "Pradhan Mantri Awaas Yojana - Gramin",
@@ -234,7 +239,7 @@ SCHEME_METADATA = {
         "badge": "PMAY-G",
         "icon": "home",
         "description": "Grant assistance of ₹1.20L (plain) / ₹1.30L (hilly) for 25 sq.m minimum area pucca house.",
-        "verified_rules": 3,
+        "verified_rules": 26,
     },
     "PM_KUSUM": {
         "name": "PM-KUSUM Solar Agriculture",
@@ -242,7 +247,7 @@ SCHEME_METADATA = {
         "badge": "PM-KUSUM",
         "icon": "sun",
         "description": "60% capital subsidy (30% CFA + 30% State) for standalone solar agriculture pumps up to 7.5 HP.",
-        "verified_rules": 2,
+        "verified_rules": 32,
     },
     "PMMY": {
         "name": "Pradhan Mantri Mudra Yojana",
@@ -250,7 +255,7 @@ SCHEME_METADATA = {
         "badge": "PMMY",
         "icon": "briefcase",
         "description": "Collateral-free institutional micro-credit across Shishu (₹50k), Kishore (₹5L), and Tarun (₹10L/₹20L) tiers.",
-        "verified_rules": 2,
+        "verified_rules": 26,
     },
 }
 
@@ -404,6 +409,34 @@ def verify_claim(req: VerifyRequest):
                 "is_match": not any("qualifier" in m for m in pred.context_mismatch),
             },
         ]
+    elif is_upload and pred.matched_candidate_rule:
+        cand_rule = pred.matched_candidate_rule
+        diff = [
+            {
+                "dimension": "Matched Candidate Rule",
+                "claimed": f"{parsed.get('claimed_value') or ''} {parsed.get('claimed_unit') or ''}".strip() or req.candidate_claim[:40],
+                "evidence_rule": f"{cand_rule.get('rule_id')} ({cand_rule.get('raw_mention')}, Page {pred.matched_page})",
+                "is_match": verdict == "SUPPORTED",
+            },
+            {
+                "dimension": "Value & Unit",
+                "claimed": f"{parsed.get('claimed_value') or ''} {parsed.get('claimed_unit') or ''}".strip(),
+                "evidence_rule": f"{cand_rule.get('value')} {cand_rule.get('unit')}",
+                "is_match": verdict in ("SUPPORTED", "WRONG_CONTEXT"),
+            },
+            {
+                "dimension": "Numeric Operator & Qualifier",
+                "claimed": parsed.get("numeric_operator") or parsed.get("qualifier") or "eq",
+                "evidence_rule": f"op={cand_rule.get('numeric_operator') or 'eq'}, qual={cand_rule.get('qualifier') or 'None'}",
+                "is_match": pred.verdict_reason_code != "operator_contradicted",
+            },
+            {
+                "dimension": "Candidate Match Score",
+                "claimed": pred.verdict_reason_code or verdict,
+                "evidence_rule": f"Score: {pred.matched_score} (Page {pred.matched_page})",
+                "is_match": verdict == "SUPPORTED",
+            },
+        ]
 
     # Evidence items annotated with role
     annotated_evidence = []
@@ -433,6 +466,11 @@ def verify_claim(req: VerifyRequest):
         "verdict": verdict,
         "verification_rationale": pred.verification_rationale,
         "abstention_reason": pred.abstention_reason,
+        "verdict_reason_code": pred.verdict_reason_code or pred.abstention_reason,
+        "matched_passage": pred.matched_passage,
+        "matched_candidate_rule": pred.matched_candidate_rule,
+        "matched_page": pred.matched_page,
+        "matched_score": pred.matched_score,
         "temporal_status": pred.temporal_status,
         "context_mismatch": pred.context_mismatch,
         "latency_ms": round(total_latency_ms, 2),

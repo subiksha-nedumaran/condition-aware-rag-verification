@@ -1,5 +1,5 @@
 scheme,retriever_name,split,total_queries,eligible_query_count,hits_at_1,hits_at_3,hits_at_5,hits_at_10,recall_at_1,recall_at_3,recall_at_5,recall_at_10,item_recall_at_5,mrr,mean_latency_ms
-pm_kisan,semantic,test,40,21,9,15,17,19,0.4286,0.7143,0.8095,0.9048,0.7619,0.5933,19.0288
-pm_kisan,lexical,test,40,21,18,20,20,21,0.8571,0.9524,0.9524,1.0,0.9524,0.9048,0.2639
-pm_kisan,table,test,40,21,19,21,21,21,0.9048,1.0,1.0,1.0,0.9762,0.9365,6.0621
-pm_kisan,hybrid,test,40,21,14,19,21,21,0.6667,0.9048,1.0,1.0,0.9762,0.7937,6.3781
+pm_kisan,semantic,test,40,21,9,15,17,19,0.4286,0.7143,0.8095,0.9048,0.7619,0.5933,71.1121
+pm_kisan,lexical,test,40,21,18,20,20,21,0.8571,0.9524,0.9524,1.0,0.9524,0.9048,0.5283
+pm_kisan,table,test,40,21,19,20,21,21,0.9048,0.9524,1.0,1.0,0.9762,0.9325,21.0602
+pm_kisan,hybrid,test,40,21,14,19,21,21,0.6667,0.9048,1.0,1.0,0.9762,0.7937,22.8208

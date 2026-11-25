@@ -40,13 +40,14 @@ from fieldguard.evaluation.runner import build_all_retrievers
 from fieldguard.verifier import FieldGuardVerifier, VerifierConfig
 from fieldguard.verdicts import Verdict
 from fieldguard.uploaded_doc_engine import (
-    process_uploaded_document,
+    UploadedDocumentError,
     answer_question_from_uploaded_doc,
 )
+from fieldguard.uploaded_backend import load_uploaded_backend
 
 
 @st.cache_resource
-def load_scheme_backend(scheme_key: str):
+def load_scheme_backend(scheme_key: str, verification_revision: str = "numeric-v2"):
     if scheme_key == "PM_KISAN":
         store = build_pm_kisan_evidence_store(PROJECT_ROOT)
     elif scheme_key == "PMFBY":
@@ -68,118 +69,7 @@ st.title("🛡️ FieldGuard")
 st.subheader("Condition-Aware Numerical Claim Verification & Policy Q&A Across Government Schemes")
 
 # Benchmark scenarios for all 7 schemes
-SCHEME_SCENARIOS = {
-    "PMFBY": {
-        "1. Supported: Kharif Food Grains Farmer Premium (2.0%)": (
-            "Under the 2023 PMFBY operational guidelines, what is the maximum farmer premium for Kharif food grains?",
-            "Under the 2023 PMFBY operational guidelines, the maximum farmer premium for Kharif food grains is 2.0% of Sum Insured.",
-        ),
-        "2. Wrong Context: 5.0% Claimed on Kharif Food Grains (Commercial Crop Rate)": (
-            "For Kharif food grains under PMFBY, what is the maximum farmer premium?",
-            "Under the 2023 PMFBY operational guidelines, the maximum farmer premium for Kharif food grains is 5.0% of Sum Insured.",
-        ),
-        "3. Contradicted: Claiming Flat Rate Ignoring 'Whichever is Less' Qualifier": (
-            "Under the 2023 PMFBY operational guidelines, does a Kharif food-grain farmer always pay a flat 2.0% premium?",
-            "Under the 2023 PMFBY operational guidelines, a Kharif food-grain farmer always pays a flat 2.0% of Sum Insured even when the actuarial rate is lower at 1.2%.",
-        ),
-        "4. Unverifiable: Premature / Unverified 2026 Policy Claim": (
-            "Under the latest 2026 revised guidelines, what is the maximum farmer premium for Kharif food grains?",
-            "Under the latest current 2026 revised PMFBY operational guidelines, the maximum farmer premium for Kharif food grains is 1.0% of Sum Insured.",
-        ),
-        "5. Supported Add-on: Wild Animal Attack 100% State Cost (PIB Dec 2025)": (
-            "What share of the cost is borne by the State Government when notifying wild animal attack add-on cover?",
-            "According to the December 2025 PIB press release (PRID=2197713), wild animal attack add-on cover under PMFBY is implemented 100.0% at the cost of the respective State Government.",
-        ),
-    },
-    "PM_KISAN": {
-        "1. Supported: Annual Income Support (Rs 6,000 / year)": (
-            "Under PM-KISAN, what is the annual financial assistance provided to eligible farmer families?",
-            "Under PM-KISAN, eligible landholding farmer families receive an annual financial benefit of Rs 6000.",
-        ),
-        "2. Wrong Context: Rs 6,000 Claimed Per Instalment (Frequency Distractor)": (
-            "Under PM-KISAN, what is the financial assistance provided per four-monthly instalment?",
-            "Under PM-KISAN, eligible farmers receive Rs 6000 per instalment.",
-        ),
-        "3. Wrong Context: Tenant Farmers Claiming Rs 6,000 (Ineligible Beneficiary)": (
-            "Under PM-KISAN, what is the annual financial support provided to tenant farmers?",
-            "Under PM-KISAN, tenant farmers receive an annual income support of Rs 6000.",
-        ),
-        "4. Supported: Statutory Exclusion of Institutional Landholders (0 INR Benefit)": (
-            "Are institutional landholders eligible to receive benefits under PM-KISAN?",
-            "All institutional landholders are statutorily excluded (Rs 0 benefit) from PM-KISAN.",
-        ),
-        "5. Contradicted: Claiming 4 Quarterly Instalments per Year instead of 3": (
-            "How many instalments are paid in a financial year under PM-KISAN?",
-            "Under PM-KISAN, the financial benefit is disbursed in 4 quarterly instalments per year.",
-        ),
-        "6. Supported: Mandatory 100% eKYC and Aadhaar DBT": (
-            "What is the eKYC compliance requirement for registered farmers under PM-KISAN?",
-            "Under PM-KISAN, eKYC completion is 100 percent mandatory for all registered farmers.",
-        ),
-    },
-    "MGNREGA": {
-        "1. Supported: 100 Days Guaranteed Wage Employment": (
-            "How many days of guaranteed wage employment are provided to rural households under MGNREGS?",
-            "Under MGNREGS, every rural household whose adult members volunteer for unskilled manual work is guaranteed 100 days of wage employment per financial year.",
-        ),
-        "2. Supported: 15-Day Work Allocation Deadline": (
-            "Within how many days must employment be provided to an applicant under MGNREGS?",
-            "Under MGNREGS, work must be provided within 15 days of application, failing which daily unemployment allowance is payable.",
-        ),
-        "3. Wrong Context: 100 Days Claimed for Urban Industrial Households": (
-            "Are urban industrial households entitled to 100 days guaranteed work under MGNREGS?",
-            "Urban industrial households receive 100 days of guaranteed wage employment under MGNREGS.",
-        ),
-    },
-    "PM_JAY": {
-        "1. Supported: Rs 5 Lakh Annual Health Cover Per Family": (
-            "What is the annual health cover provided to eligible families under Ayushman Bharat PM-JAY?",
-            "Ayushman Bharat PM-JAY provides an annual health cover of Rs 500000 per eligible family for secondary and tertiary care hospitalisation.",
-        ),
-        "2. Supported: 100% Cashless Treatment with No Family Size Cap": (
-            "Are benefits under Ayushman Bharat PM-JAY cashless?",
-            "Treatment under Ayushman Bharat PM-JAY is 100 percent cashless across empanelled public and private hospitals with no cap on family size.",
-        ),
-        "3. Contradicted: Claiming Rs 10 Lakh Annual Cover": (
-            "What is the maximum annual coverage under Ayushman Bharat PM-JAY?",
-            "Ayushman Bharat PM-JAY provides an annual health cover of Rs 1000000 per family.",
-        ),
-    },
-    "PMAY_G": {
-        "1. Supported: Plain Areas Unit Assistance (Rs 1,20,000)": (
-            "What is the unit assistance provided for house construction in plain areas under PMAY-G?",
-            "Under PMAY-G, beneficiaries in plain areas receive unit grant assistance of Rs 120000.",
-        ),
-        "2. Supported: Hilly Areas Unit Assistance (Rs 1,30,000)": (
-            "What is the unit assistance for hilly and difficult areas under PMAY-G?",
-            "Under PMAY-G, beneficiaries in hilly states and difficult areas receive unit grant assistance of Rs 130000.",
-        ),
-        "3. Supported: Minimum Floor Area of 25 Sq. Metres": (
-            "What is the minimum floor area prescribed for a house under PMAY-G?",
-            "Under PMAY-G, the minimum floor area of the house is 25 sq. metres including a hygienic cooking space.",
-        ),
-    },
-    "PM_KUSUM": {
-        "1. Supported: 60% Total Capital Subsidy (30% Centre + 30% State)": (
-            "What is the subsidy percentage provided for standalone solar pumps under PM-KUSUM Component-B?",
-            "Under PM-KUSUM Component-B, farmers receive a total capital subsidy of 60 percent for standalone solar agriculture pumps.",
-        ),
-        "2. Supported: 30% Central Financial Assistance (CFA)": (
-            "What is the Central Government share of subsidy under PM-KUSUM Component-B?",
-            "Under PM-KUSUM, Central Financial Assistance (CFA) provides 30 percent of the benchmark pump cost.",
-        ),
-    },
-    "PMMY": {
-        "1. Supported: Shishu Loan Limit up to Rs 50,000": (
-            "What is the maximum loan limit under the Shishu category of Pradhan Mantri Mudra Yojana?",
-            "Under the Shishu category of Pradhan Mantri Mudra Yojana (PMMY), loans are sanctioned up to Rs 50000 without collateral.",
-        ),
-        "2. Contradicted: Claiming Rs 1,00,000 under Shishu Category": (
-            "What is the maximum loan limit under the Shishu category of PMMY?",
-            "Under the Shishu category of Mudra Yojana, entrepreneurs can avail loans up to Rs 100000.",
-        ),
-    },
-}
+from fieldguard.demo_scenarios import SCHEME_SCENARIOS
 
 with st.sidebar:
     st.header("🏛️ Scheme Navigation")
@@ -214,7 +104,11 @@ with st.sidebar:
         else:
             scheme_key = "PMMY"
 
-        store, retrievers, verifier = load_scheme_backend(scheme_key)
+        try:
+            store, retrievers, verifier = load_scheme_backend(scheme_key)
+        except RuntimeError as exc:
+            st.error(str(exc))
+            st.stop()
 
         st.header("⚙️ Configuration")
         scenarios = SCHEME_SCENARIOS.get(scheme_key, {})
@@ -243,15 +137,23 @@ if is_upload_mode:
     )
 
     uploaded_file = st.file_uploader("Upload Scheme PDF or TXT:", type=["pdf", "txt"])
+    st.caption(
+        "Upload verdicts compare claims with this document only. Official provenance and current "
+        "policy applicability are unverified. Explicit numerical passages and recognized yield-threshold "
+        "paraphrases can be checked; unresolved wording or omitted conditions return UNVERIFIABLE."
+    )
 
     if uploaded_file is not None:
-        file_bytes = uploaded_file.read()
+        file_bytes = uploaded_file.getvalue()
         file_name = uploaded_file.name
 
         with st.spinner(f"Ingesting and indexing '{file_name}'..."):
-            up_store, up_units, up_rules = process_uploaded_document(file_bytes, file_name)
-            up_retrievers = build_all_retrievers(up_store)
-            up_verifier = FieldGuardVerifier(evidence_store=up_store)
+            try:
+                up_store, up_units, up_rules, up_retrievers, up_verifier = load_uploaded_backend(
+                    st.session_state, file_bytes, file_name)
+            except (UploadedDocumentError, RuntimeError) as exc:
+                st.error(str(exc))
+                st.stop()
 
         st.success(
             f"✅ **Document Processed Successfully!** "
@@ -261,7 +163,8 @@ if is_upload_mode:
         tab1, tab2, tab3 = st.tabs(["❓ Ask a Question from Document", "🛡️ Verify a Numerical Claim", "📑 Document Structure"])
 
         with tab1:
-            st.markdown("#### Natural Language Question Answering")
+            st.markdown("#### Search Document Excerpts")
+            st.caption("Search returns source passages, not generated answers. Weak lexical matches are omitted; relevant excerpts may still be incomplete.")
             q_text = st.text_input(
                 "Enter your question regarding the uploaded document:",
                 placeholder="e.g. What is the maximum subsidy or financial assistance allowed?",
@@ -273,7 +176,7 @@ if is_upload_mode:
                     st.warning("Please enter a question.")
                 else:
                     qa_res = answer_question_from_uploaded_doc(q_text, up_store, up_retrievers, top_k=q_top_k)
-                    st.markdown("### 💡 Grounded Answer")
+                    st.markdown("### 📄 Retrieved Excerpts")
                     st.write(qa_res["answer"])
 
                     st.markdown("### 📑 Citations & Source Evidence")
@@ -321,7 +224,15 @@ if is_upload_mode:
                     else:
                         st.info(f"### Verdict: **{verdict}** ❓ (Insufficient evidence to establish support)")
 
+                    st.caption("Verification scope: uploaded document only — source unverified.")
                     st.markdown(f"**Verification Rationale:** {pred.verification_rationale}")
+                    if pred.verdict_reason_code or pred.abstention_reason:
+                        st.markdown(f"**Diagnostic Reason Code:** `{pred.verdict_reason_code or pred.abstention_reason}`")
+                    if pred.matched_passage:
+                        st.markdown(f"**Matched Passage (Page {pred.matched_page or 'N/A'}, Score {pred.matched_score}):** {pred.matched_passage}")
+                    if pred.matched_candidate_rule:
+                        with st.expander("🔍 Matched Uploaded Candidate Rule", expanded=True):
+                            st.json(pred.matched_candidate_rule)
 
                     c1, c2 = st.columns(2)
                     with c1:
@@ -342,12 +253,18 @@ if is_upload_mode:
 
         with tab3:
             st.markdown("#### Document Overview & Indexed Chunks")
+            with st.expander("Extracted numerical candidates (unverified)"):
+                st.caption("Bounds are extracted only when explicit. Full passages retain eligibility and qualifications; unknown fields remain blank.")
+                st.json([rule.to_dict() for rule in up_rules])
             st.write(f"Total Extracted Passages / Table Rows: **{len(up_units)}**")
             for idx, u in enumerate(up_units[:25]):
                 with st.expander(f"Unit {idx + 1} — Page {u.physical_pdf_page} ({u.evidence_type})"):
                     st.write(u.text)
             if len(up_units) > 25:
                 st.caption(f"... and {len(up_units) - 25} more units indexed.")
+
+    else:
+        st.session_state.pop("fieldguard_upload_backend", None)
 
 # ==========================================
 # BRANCH B: PRE-LOADED 7 FLAGSHIP SCHEMES
@@ -410,6 +327,9 @@ else:
                     st.info(f"### Verdict: **{verdict}** ❓ (Insufficient or ambiguous evidence to establish support)")
 
                 st.markdown(f"**Verification Rationale:** {pred.verification_rationale}")
+                if pred.component_results:
+                    with st.expander("Checks for each numerical component", expanded=True):
+                        st.dataframe(pred.component_results, use_container_width=True)
 
                 col1, col2, col3 = st.columns(3)
                 with col1:

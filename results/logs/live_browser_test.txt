@@ -1,0 +1,17 @@
+============================================================
+STARTING LIVE BROWSER TESTS AGAINST http://localhost:8501
+============================================================
+
+1. Navigating to http://localhost:8501...
+   [PASS] Page H1: '🛡️ FieldGuard'
+
+2. Checking Sidebar Scheme Navigation options...
+   Detected 0 scheme options:
+Traceback (most recent call last):
+  File "C:\FieldGuard_ag\scripts\test_live_browser.py", line 189, in <module>
+    run_live_browser_tests()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\FieldGuard_ag\scripts\test_live_browser.py", line 43, in run_live_browser_tests
+    assert len(radio_labels) >= 8
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

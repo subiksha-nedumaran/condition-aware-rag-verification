@@ -12,7 +12,7 @@ This document provides complete, deterministic instructions to install, verify, 
   - CPU: Standard multi-core x86_64 CPU (no GPU required).
   - RAM: Minimum 4 GB (8 GB recommended).
   - Disk Space: ~1.5 GB (including embedding weights and dependencies).
-- **Network Requirements:** None for core deterministic verification, unit tests, and experiments. All test fixtures, documents, models, and embeddings run strictly offline.
+- **Network Requirements:** Installation and the initial embedding-model download need network access. After provisioning, tests and retrieval use local model files. Source acquisition also requires network access.
 
 ---
 
@@ -28,9 +28,14 @@ python -m venv .venv
 ### Step 2: Install Package in Editable Mode
 ```powershell
 python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install -e .
+# Reproduce the captured Windows / Python 3.14 environment:
+python -m pip install -r requirements-lock.txt
+python -m pip install -e . --no-deps
+python -m fieldguard.model_setup --download
+python -m fieldguard.model_setup
 ```
+
+The lock file is an installed-environment snapshot, not a cross-platform lock. On other Python versions or platforms, install with `python -m pip install -e .` to resolve compatible dependencies. The setup command pins the model revision and checks the three required model files. Normal application runs never download models automatically.
 
 Verify installed packages:
 ```powershell
@@ -41,15 +46,12 @@ python -c "import fieldguard; print(fieldguard.__file__)"
 
 ## 3. Automated Test Suite Execution
 
-Run the complete 51-test automated suite:
+Run the complete automated suite:
 ```powershell
 python -m pytest -v
 ```
 
-Expected output:
-```text
-============================= 51 passed in 3.26s ==============================
-```
+Use pytest’s output for the current test count and duration; neither is a fixed performance guarantee.
 
 To run individual test groups:
 - **Condition Matching:** `pytest tests/test_condition_matching.py -v`

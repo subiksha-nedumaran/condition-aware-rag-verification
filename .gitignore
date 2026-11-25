@@ -10,9 +10,12 @@ dist/
 
 # Environments and secrets
 .env
+.env.*
+!.env.example
 .venv/
 venv/
 ENV/
+results/llm_cache/
 
 # Pytest and caches
 .pytest_cache/

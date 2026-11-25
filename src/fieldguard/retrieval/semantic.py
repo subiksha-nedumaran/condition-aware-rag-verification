@@ -44,7 +44,7 @@ class MiniLML6V2SafetensorsEncoder:
         max_length: int = 256,
         batch_size: int = 64,
     ) -> None:
-        from huggingface_hub import snapshot_download
+        from fieldguard.model_setup import ensure_model
         from safetensors.numpy import load_file
         from tokenizers import Tokenizer
 
@@ -52,7 +52,7 @@ class MiniLML6V2SafetensorsEncoder:
         self.max_length = max_length
         self.batch_size = batch_size
 
-        resolved_dir = snapshot_download(repo_id=model_id, local_files_only=True)
+        resolved_dir = ensure_model(model_id=model_id)
         model_dir = Path(resolved_dir)
 
         with (model_dir / "config.json").open("r", encoding="utf-8") as f:
@@ -156,6 +156,8 @@ class MiniLML6V2SafetensorsEncoder:
 
 
 _SHARED_MINILM_ENCODER: MiniLML6V2SafetensorsEncoder | None = None
+_MEMORY_CORPUS_CACHE: dict[str, np.ndarray] = {}
+_GLOBAL_QUERY_CACHE: dict[str, np.ndarray] = {}
 
 
 def get_shared_minilm_encoder(
@@ -212,24 +214,36 @@ class SemanticRetriever(BaseRetriever):
             return np.zeros((0, self.encoder.hidden_size), dtype=np.float32)
 
         fp = self._compute_corpus_fingerprint()
-        if self.cache_path.exists():
-            try:
-                data = np.load(str(self.cache_path), allow_pickle=False)
-                if str(data["fingerprint"]) == fp:
-                    return data["embeddings"].astype(np.float32)
-            except Exception:
-                pass
+        if fp in _MEMORY_CORPUS_CACHE:
+            return _MEMORY_CORPUS_CACHE[fp]
+
+        fp_cache_path = self.cache_path.parent / f"minilm_l6_v2_{fp[:16]}.npz"
+        for candidate_path in (fp_cache_path, self.cache_path):
+            if candidate_path.exists():
+                try:
+                    data = np.load(str(candidate_path), allow_pickle=False)
+                    if str(data["fingerprint"]) == fp:
+                        embs = data["embeddings"].astype(np.float32)
+                        _MEMORY_CORPUS_CACHE[fp] = embs
+                        return embs
+                except Exception:
+                    pass
 
         texts = [u.text for u in self.corpus_units]
         embs = self.encoder.encode(texts, normalize=True)
+        _MEMORY_CORPUS_CACHE[fp] = embs
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-        np.savez_compressed(
-            str(self.cache_path),
-            embeddings=embs,
-            fingerprint=np.array(fp),
-            model_id=np.array(self.model_id),
-            index_version=np.array(self.index_version),
-        )
+        for save_path in {fp_cache_path, self.cache_path}:
+            try:
+                np.savez_compressed(
+                    str(save_path),
+                    embeddings=embs,
+                    fingerprint=np.array(fp),
+                    model_id=np.array(self.model_id),
+                    index_version=np.array(self.index_version),
+                )
+            except Exception:
+                pass
         return embs
 
     def get_index_metadata(self) -> dict[str, Any]:
@@ -248,7 +262,9 @@ class SemanticRetriever(BaseRetriever):
 
         q_clean = query.strip()
         if q_clean not in self._query_cache:
-            self._query_cache[q_clean] = self.encoder.encode([q_clean], normalize=True)[0]
+            if q_clean not in _GLOBAL_QUERY_CACHE:
+                _GLOBAL_QUERY_CACHE[q_clean] = self.encoder.encode([q_clean], normalize=True)[0]
+            self._query_cache[q_clean] = _GLOBAL_QUERY_CACHE[q_clean]
         q_vec = self._query_cache[q_clean]
 
         scores = (self.corpus_embeddings @ q_vec).astype(np.float64)

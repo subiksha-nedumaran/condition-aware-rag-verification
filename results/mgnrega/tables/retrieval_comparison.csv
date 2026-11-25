@@ -1,0 +1,5 @@
+scheme,retriever_name,split,total_queries,eligible_query_count,hits_at_1,hits_at_3,hits_at_5,hits_at_10,recall_at_1,recall_at_3,recall_at_5,recall_at_10,item_recall_at_5,mrr,mean_latency_ms
+mgnrega,semantic,test,40,30,24,26,29,30,0.8,0.8667,0.9667,1.0,0.9667,0.8583,69.8726
+mgnrega,lexical,test,40,30,27,30,30,30,0.9,1.0,1.0,1.0,1.0,0.9389,0.4984
+mgnrega,table,test,40,30,27,30,30,30,0.9,1.0,1.0,1.0,1.0,0.9389,15.7527
+mgnrega,hybrid,test,40,30,26,30,30,30,0.8667,1.0,1.0,1.0,1.0,0.9167,17.3912

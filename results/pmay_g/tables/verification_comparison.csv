@@ -1,0 +1,5 @@
+scheme,method_name,split,sample_size,accuracy,accuracy_ci_lower,accuracy_ci_upper,false_support_rate,fsr_ci_lower,fsr_ci_upper,decision_coverage,macro_f1,supported_f1,contradicted_f1,wrong_context_f1,unverifiable_f1,mean_latency_ms
+pmay_g,baseline_a_retrieval_only,test,40,0.25,0.25,0.25,1.0,1.0,1.0,1.0,0.1,0.4,0.0,0.0,0.0,15.6437
+pmay_g,baseline_b_numeric_only,test,40,0.4,0.325,0.475,0.7667,0.6333,0.9,1.0,0.2927,0.4651,0.7059,0.0,0.0,17.8487
+pmay_g,baseline_c_numeric_basic_context,test,40,0.725,0.575,0.8381,0.2,0.1,0.3,0.9,0.7022,0.72,0.8182,0.8421,0.4286,14.9095
+pmay_g,fieldguard_full,test,40,0.875,0.75,0.975,0.0,0.0,0.0,0.75,0.8769,0.9474,0.8182,0.8421,0.9,13.3086

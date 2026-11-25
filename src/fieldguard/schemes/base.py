@@ -8,6 +8,17 @@ from typing import Any
 
 
 @dataclass
+class ParameterSpec:
+    """Specification for a numeric policy parameter within a scheme."""
+
+    name: str
+    description: str = ""
+    canonical_unit: str = ""
+    required_context_fields: list[str] = field(default_factory=list)
+    optional_context_fields: list[str] = field(default_factory=list)
+
+
+@dataclass
 class SchemeContextValidationResult:
     """Result of evaluating whether a parsed claim supplies all mandatory contextual dimensions."""
 
@@ -17,16 +28,19 @@ class SchemeContextValidationResult:
     details: str = ""
 
 
+ContextValidationResult = SchemeContextValidationResult
+
+
 class BaseScheme(ABC):
     """
     Abstract interface for scheme-specific knowledge, condition taxonomy,
     parameter definitions, and contextual validation.
     """
 
-    scheme_id: str
-    full_name: str
-    domain: str
-    parameters: list[str]
+    scheme_id: str = ""
+    full_name: str = ""
+    domain: str = ""
+    parameters: list[Any] = []
     aliases: list[str] = []
 
     @abstractmethod
@@ -46,7 +60,7 @@ class BaseScheme(ABC):
         self,
         claimed_context: dict[str, Any],
         rule_context: dict[str, Any],
-        rule_parameter: str,
+        rule_parameter: str | None = None,
         enable_switches: dict[str, bool] | None = None,
     ) -> tuple[bool, list[str]]:
         """
@@ -55,8 +69,14 @@ class BaseScheme(ABC):
         """
         pass
 
-    @abstractmethod
     def get_required_context_keys(self, rule_parameter: str) -> list[str]:
         """Return the list of mandatory contextual keys for a given rule parameter."""
-        pass
+        for p in self.parameters:
+            if isinstance(p, ParameterSpec) and p.name == rule_parameter:
+                return list(p.required_context_fields)
+        return []
+
+
+SchemeDefinition = BaseScheme
+
 

@@ -1,0 +1,9 @@
+ablation_label,config_name,accuracy,false_support_rate,decision_coverage,macro_f1
+Full FieldGuard,fieldguard_full,0.725,0.1667,0.85,0.7102
+Ablation 1: Semantic IR Only,ablation_semantic_only,0.7,0.1667,0.825,0.6717
+Ablation 2: Without Condition Matching,ablation_no_condition_matching,0.525,0.5333,0.85,0.474
+Ablation 3: Without Entity Scope Matching,ablation_no_entity_scope,0.725,0.1667,0.85,0.7102
+Ablation 4: Without Frequency Matching,ablation_no_frequency,0.725,0.1667,0.85,0.7102
+Ablation 5: Without Exclusion Matching,ablation_no_exclusions,0.75,0.1667,0.85,0.7304
+Ablation 6: Without Temporal Checks,ablation_no_temporal,0.575,0.3333,1.0,0.4832
+Ablation 7: Without Sufficiency Gate,ablation_no_sufficiency,0.575,0.3667,1.0,0.4852

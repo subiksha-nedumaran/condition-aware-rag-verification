@@ -12,6 +12,30 @@ from streamlit.testing.v1 import AppTest
 APP_PATH = str(Path(__file__).resolve().parent.parent / "app.py")
 
 
+@pytest.mark.parametrize("scheme,question,claim", [
+    ("PM-KISAN", "What is the annual benefit and how is it distributed under PM-KISAN?",
+     "Under PM-KISAN, eligible farmers receive ₹6,000 annually in three equal instalments of ₹2,000 each, distributed every four months."),
+    ("PM-JAY", "What is the annual health coverage under PM-JAY?",
+     "Under Ayushman Bharat PM-JAY, eligible families receive health coverage of ₹5,00,000 per year for secondary and tertiary hospitalisation."),
+    ("PMAY-G", "What is the minimum floor area under PMAY-G?",
+     "Under PMAY-G, the minimum floor area of a rural house must be 25 square metres."),
+    ("PM-KUSUM", "What is the maximum pump capacity under PM-KUSUM?",
+     "Under PM-KUSUM Component B, standalone solar agriculture pumps are supported up to a capacity of 7.5 HP."),
+    ("PMMY", "What is the Shishu loan limit under PMMY?",
+     "Under PMMY, the Shishu loan category provides loans up to ₹50,000."),
+])
+def test_screenshot_custom_claim_flow(scheme, question, claim):
+    at = AppTest.from_file(APP_PATH, default_timeout=60).run()
+    radio = at.sidebar.radio[0]
+    radio.set_value(next(option for option in radio.options if scheme in option)).run()
+    at.sidebar.selectbox[0].select("Custom Query / Claim").run()
+    at.text_input(key="pre_q_input").set_value(question)
+    at.text_area(key="pre_c_input").set_value(claim)
+    at.button(key="btn_pre_verify").click().run()
+    assert not at.exception
+    assert any("Verdict: SUPPORTED" in message.value or "**SUPPORTED**" in message.value for message in at.success)
+
+
 @pytest.fixture
 def app():
     """Initializes and runs AppTest against app.py."""
@@ -149,7 +173,7 @@ def test_upload_custom_document_flow():
     assert len(at.exception) == 0
 
     all_markdown = [m.value for m in at.markdown]
-    assert any("Grounded Answer" in m for m in all_markdown)
+    assert any("Retrieved Excerpts" in m for m in all_markdown)
 
     # 2. Test Claim Verification
     claim_area = at.text_area(key="up_claim_text")
@@ -158,8 +182,8 @@ def test_upload_custom_document_flow():
     verify_btn.click().run()
     assert len(at.exception) == 0
 
-    all_success = [s.value for s in at.success]
-    assert any("SUPPORTED" in s for s in all_success)
+    # The claim omits the per-hectare monetary cap from the source passage.
+    assert any("UNVERIFIABLE" in message.value for message in at.info)
 
 
 def test_empty_input_validation(app):

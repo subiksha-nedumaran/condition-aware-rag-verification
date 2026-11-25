@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FieldGuard — Universal Condition-Aware Verification & Policy Intelligence</title>
   
-  <!-- Modern Typography from Google Fonts -->
+  <!-- Typography from Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -19,7 +19,6 @@
         extend: {
           fontFamily: {
             sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            display: ['"Outfit"', 'sans-serif'],
             mono: ['"Fira Code"', 'monospace'],
           },
           colors: {
@@ -31,17 +30,16 @@
               700: '#1d4ed8',
               800: '#1e40af',
               900: '#1e3a8a',
-              950: '#0b1329',
             },
             verdict: {
               supported: '#10b981',
-              supportedGlow: 'rgba(16, 185, 129, 0.25)',
+              supportedBg: 'rgba(16, 185, 129, 0.12)',
               wrongContext: '#f59e0b',
-              wrongContextGlow: 'rgba(245, 158, 11, 0.25)',
+              wrongContextBg: 'rgba(245, 158, 11, 0.12)',
               contradicted: '#ef4444',
-              contradictedGlow: 'rgba(239, 68, 68, 0.25)',
+              contradictedBg: 'rgba(239, 68, 68, 0.12)',
               unverifiable: '#8b5cf6',
-              unverifiableGlow: 'rgba(139, 92, 246, 0.25)',
+              unverifiableBg: 'rgba(139, 92, 246, 0.12)',
             }
           }
         }
@@ -49,9 +47,8 @@
     }
   </script>
 
-  <!-- Lucide Icons & Canvas Confetti -->
+  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
   <style>
     /* Custom Scrollbar */
@@ -60,123 +57,379 @@
       height: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: rgba(10, 15, 29, 0.7);
+      background: rgba(15, 23, 42, 0.6);
     }
     ::-webkit-scrollbar-thumb {
-      background: #27354a;
+      background: #334155;
       border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: #3b82f6;
+      background: #475569;
+    }
+
+    .light ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .light ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+    }
+    .light ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
     
-    /* Engineering Grid & Ambient Light Backdrop */
-    body {
-      background-color: #070a12;
-      background-image: 
-        radial-gradient(at 10% 10%, rgba(37, 99, 235, 0.12) 0px, transparent 45%),
-        radial-gradient(at 90% 15%, rgba(147, 51, 234, 0.10) 0px, transparent 45%),
-        radial-gradient(at 50% 85%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
-        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-      background-size: 100% 100%, 100% 100%, 100% 100%, 40px 40px, 40px 40px;
-      background-position: 0 0, 0 0, 0 0, -1px -1px, -1px -1px;
-    }
-
-    .light body {
-      background-color: #f8fafc;
-      background-image: 
-        radial-gradient(at 10% 10%, rgba(59, 130, 246, 0.08) 0px, transparent 45%),
-        radial-gradient(at 90% 15%, rgba(147, 51, 234, 0.06) 0px, transparent 45%),
-        linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
-    }
-
-    /* Glassmorphism High-Depth Cards */
     .glass-card {
-      background: rgba(13, 19, 36, 0.72);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(51, 65, 85, 0.6);
     }
+
+    .tab-active {
+      border-bottom: 2px solid #3b82f6;
+      color: #3b82f6;
+      font-weight: 600;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 0.3; }
+    }
+    .pulse-glow {
+      animation: pulseGlow 3s infinite ease-in-out;
+    }
+
+    /* ========================================================= */
+    /* HIGH-CONTRAST LIGHT THEME (White & Refined Greys)         */
+    /* ========================================================= */
+    .light body {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+    }
+
     .light .glass-card {
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(226, 232, 240, 0.9);
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05) !important;
     }
 
-    /* Interactive Scheme Chip */
-    .scheme-chip {
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .scheme-chip:hover {
-      transform: translateY(-2px);
-      border-color: rgba(59, 130, 246, 0.5);
-    }
-    .scheme-chip.active {
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(79, 70, 229, 0.2) 100%);
-      border-color: #3b82f6;
-      box-shadow: 0 0 20px -3px rgba(59, 130, 246, 0.4);
+    .light header {
+      background: #ffffff !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
     }
 
-    /* Glowing borders */
-    .glow-border-purple {
-      box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.3);
-    }
-    .glow-border-emerald {
-      box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.3);
-    }
-    .glow-border-amber {
-      box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.3);
+    .light header nav {
+      background: #f1f5f9 !important;
+      border: 1px solid #e2e8f0 !important;
     }
 
-    @keyframes pulseSoft {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.03); opacity: 0.85; }
+    .light header nav button:not(#nav-verify) {
+      color: #475569 !important;
     }
-    .pulse-soft {
-      animation: pulseSoft 3s infinite ease-in-out;
+    .light header nav button:not(#nav-verify):hover {
+      color: #0f172a !important;
+      background: #e2e8f0 !important;
+    }
+
+    .light input,
+    .light select,
+    .light textarea {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    .light input::placeholder,
+    .light textarea::placeholder {
+      color: #94a3b8 !important;
+    }
+    .light input:focus,
+    .light select:focus,
+    .light textarea:focus {
+      border-color: #2563eb !important;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+    }
+
+    .light #scheme-meta-box {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    .light #scheme-meta-box p {
+      color: #334155 !important;
+    }
+    .light #scheme-meta-name {
+      color: #0f172a !important;
+      font-weight: 700 !important;
+    }
+
+    .light button.bg-slate-900,
+    .light button.bg-slate-800 {
+      background-color: #f1f5f9 !important;
+      color: #334155 !important;
+      border-color: #cbd5e1 !important;
+    }
+    .light button.bg-slate-900:hover,
+    .light button.bg-slate-800:hover {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+
+    .light .text-white {
+      color: #0f172a !important;
+    }
+    .light .text-slate-100 {
+      color: #0f172a !important;
+    }
+    .light .text-slate-200 {
+      color: #1e293b !important;
+    }
+    .light .text-slate-300 {
+      color: #334155 !important;
+    }
+    .light .text-slate-400 {
+      color: #475569 !important;
+    }
+    .light .text-slate-500 {
+      color: #64748b !important;
+    }
+
+    .light .border-slate-800,
+    .light .border-slate-800\/80,
+    .light .border-slate-700 {
+      border-color: #e2e8f0 !important;
+    }
+
+    .light kbd {
+      background-color: #f1f5f9 !important;
+      color: #334155 !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    /* Verdict Card Light Theme Styling */
+    .light #verdict-card {
+      background-color: #ffffff !important;
+    }
+    .light #verdict-card.border-l-emerald-500 {
+      background-color: #f0fdf4 !important;
+      border-color: #bbf7d0 !important;
+      border-left-color: #10b981 !important;
+    }
+    .light #verdict-card.border-l-amber-500 {
+      background-color: #fffbeb !important;
+      border-color: #fde68a !important;
+      border-left-color: #f59e0b !important;
+    }
+    .light #verdict-card.border-l-rose-500 {
+      background-color: #fff1f2 !important;
+      border-color: #fecdd3 !important;
+      border-left-color: #ef4444 !important;
+    }
+    .light #verdict-card.border-l-purple-500 {
+      background-color: #faf5ff !important;
+      border-color: #e9d5ff !important;
+      border-left-color: #8b5cf6 !important;
+    }
+
+    .light #verdict-title {
+      font-weight: 800 !important;
+    }
+    .light #verdict-title.text-emerald-400 {
+      color: #047857 !important;
+    }
+    .light #verdict-title.text-amber-400 {
+      color: #b45309 !important;
+    }
+    .light #verdict-title.text-rose-400 {
+      color: #b91c1c !important;
+    }
+    .light #verdict-title.text-purple-400 {
+      color: #6d28d9 !important;
+    }
+
+    .light #verdict-timing-badge,
+    .light #evidence-count-badge {
+      background-color: #e2e8f0 !important;
+      color: #334155 !important;
+      font-weight: 600 !important;
+    }
+
+    .light #verdict-rationale {
+      color: #1e293b !important;
+      font-weight: 500 !important;
+      line-height: 1.6 !important;
+    }
+
+    /* Condition Diff Matrix Light Styling */
+    .light table thead {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+    }
+    .light table thead th {
+      color: #334155 !important;
+      font-weight: 700 !important;
+    }
+    .light #condition-diff-tbody tr {
+      border-color: #e2e8f0 !important;
+    }
+    .light #condition-diff-tbody td {
+      color: #1e293b !important;
+    }
+    .light #condition-diff-tbody td:first-child {
+      color: #0f172a !important;
+      font-weight: 600 !important;
+    }
+    .light #condition-diff-tbody .bg-emerald-500\/20 {
+      background-color: #dcfce7 !important;
+      color: #15803d !important;
+      border-color: #86efac !important;
+    }
+    .light #condition-diff-tbody .bg-rose-500\/20 {
+      background-color: #fee2e2 !important;
+      color: #b91c1c !important;
+      border-color: #fca5a5 !important;
+    }
+
+    /* 10-Step Deterministic Gates in Light Theme */
+    .light #condition-checks-list > div {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    .light #condition-checks-list p.font-semibold {
+      color: #0f172a !important;
+    }
+    .light #condition-checks-list p.text-\[11px\] {
+      color: #475569 !important;
+    }
+    .light #condition-checks-list .bg-emerald-500\/10 {
+      background-color: #dcfce7 !important;
+      color: #15803d !important;
+      border-color: #86efac !important;
+    }
+    .light #condition-checks-list .bg-rose-500\/10 {
+      background-color: #fee2e2 !important;
+      color: #b91c1c !important;
+      border-color: #fca5a5 !important;
+    }
+    .light #condition-checks-list .bg-purple-500\/10 {
+      background-color: #f3e8ff !important;
+      color: #7e22ce !important;
+      border-color: #d8b4fe !important;
+    }
+
+    /* Retrieved Evidence Cards Light Theme */
+    .light #retrieved-evidence-cards > div {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+    }
+    .light #retrieved-evidence-cards > div:hover {
+      border-color: #cbd5e1 !important;
+      background-color: #f8fafc !important;
+    }
+    .light #retrieved-evidence-cards p {
+      color: #000000 !important;
+    }
+    .light #retrieved-evidence-cards p.bg-slate-950,
+    .light #retrieved-evidence-cards .bg-slate-950 {
+      background-color: #f1f5f9 !important;
+      color: #000000 !important;
+      border-color: #cbd5e1 !important;
+    }
+    .light #retrieved-evidence-cards .text-slate-300 {
+      color: #000000 !important;
+    }
+    .light #retrieved-evidence-cards .text-slate-500 {
+      color: #475569 !important;
+    }
+    .light #retrieved-evidence-cards .bg-slate-800 {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    .light #retrieved-evidence-cards .bg-emerald-500\/20 {
+      background-color: #dcfce7 !important;
+      color: #15803d !important;
+      border-color: #86efac !important;
+    }
+    .light #retrieved-evidence-cards .bg-rose-500\/20 {
+      background-color: #fee2e2 !important;
+      color: #b91c1c !important;
+      border-color: #fca5a5 !important;
+    }
+
+    /* Policy Q&A citations in light mode */
+    .light #qa-citations-list > div {
+      background-color: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #000000 !important;
+    }
+    .light #qa-citations-list p {
+      color: #000000 !important;
+    }
+
+    /* Benchmark leaderboard cards in light mode */
+    .light #tab-benchmark .bg-slate-900\/60 {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    .light #tab-benchmark .bg-blue-600\/10 {
+      background-color: #eff6ff !important;
+      border-color: #bfdbfe !important;
+    }
+
+    /* Modals in light mode */
+    .light #upload-modal > div,
+    .light #cert-modal > div {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+    }
+    .light #drop-zone {
+      background-color: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+    }
+    .light #drop-zone:hover {
+      border-color: #f59e0b !important;
+    }
+    .light #cert-content {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+      border-color: #e2e8f0 !important;
     }
   </style>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200 selection:bg-blue-600 selection:text-white">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200 selection:bg-blue-600 selection:text-white">
 
   <!-- TOP HEADER NAVBAR -->
-  <header class="sticky top-0 z-40 w-full glass-card border-b border-slate-800/80 px-4 lg:px-8 py-3.5">
+  <header class="sticky top-0 z-40 w-full glass-card border-b border-slate-800/80 px-4 lg:px-8 py-3">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       
       <!-- Brand Logo -->
       <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('tab-verify')">
-        <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-blue-500/25 ring-1 ring-white/20">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
           <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
-          <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950"></span>
         </div>
         <div>
           <div class="flex items-center space-x-2">
-            <span class="text-xl font-display font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-blue-200">FieldGuard</span>
-            <span class="px-2 py-0.5 text-[10px] font-mono tracking-wider font-bold rounded-md bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-blue-300 border border-blue-400/30">v3.0 ENTERPRISE</span>
+            <span class="text-xl font-extrabold tracking-tight text-blue-600">FieldGuard</span>
+            
           </div>
           <p class="text-xs text-slate-400 font-medium">Condition-Aware Numerical Policy Verification</p>
         </div>
       </div>
 
-      <!-- Navigation Tabs (Floating Segmented Control) -->
-      <nav class="hidden md:flex items-center space-x-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 shadow-inner">
-        <button id="nav-verify" onclick="switchTab('tab-verify')" class="flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 transition-all shadow-md shadow-blue-500/20">
+      <!-- Navigation Tabs -->
+      <nav class="hidden md:flex items-center space-x-1 lg:space-x-2 bg-slate-900/60 p-1 rounded-xl border border-slate-800">
+        <button id="nav-verify" onclick="switchTab('tab-verify')" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-600 transition-all shadow-sm">
           <i data-lucide="shield-check" class="w-4 h-4"></i>
           <span>Verification Studio</span>
         </button>
-        <button id="nav-qa" onclick="switchTab('tab-qa')" class="flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all">
+        <button id="nav-qa" onclick="switchTab('tab-qa')" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all">
           <i data-lucide="help-circle" class="w-4 h-4"></i>
           <span>Policy Q&A</span>
         </button>
-        <button id="nav-benchmark" onclick="switchTab('tab-benchmark')" class="flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all">
+        <button id="nav-benchmark" onclick="switchTab('tab-benchmark')" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all">
           <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
           <span>Evaluation Benchmark</span>
         </button>
-        <button id="nav-docs" onclick="switchTab('tab-docs')" class="flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all">
+        <button id="nav-docs" onclick="switchTab('tab-docs')" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all">
           <i data-lucide="file-text" class="w-4 h-4"></i>
           <span>Policy Rules & Corpus</span>
         </button>
@@ -184,20 +437,20 @@
 
       <!-- Right Action Controls -->
       <div class="flex items-center space-x-3">
-        <!-- Live Status Pill (Groq / Offline) -->
-        <div id="status-pill-container" class="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium shadow-sm transition-all">
+        <!-- Live Status Pill -->
+        <div id="status-pill-container" class="hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
           <span id="status-pill-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span id="status-pill-text">Engine Active (Offline CPU)</span>
         </div>
 
         <!-- Custom Upload Trigger -->
-        <button onclick="openUploadModal()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 hover:brightness-110 text-slate-950 shadow-md shadow-amber-500/20 transition-all cursor-pointer">
+        <button onclick="openUploadModal()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 shadow-md shadow-amber-500/20 transition-all cursor-pointer">
           <i data-lucide="upload-cloud" class="w-4 h-4 text-slate-950"></i>
           <span class="hidden sm:inline">Upload PDF/TXT</span>
         </button>
 
         <!-- Dark/Light Theme Toggle -->
-        <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-all cursor-pointer" title="Toggle Theme">
+        <button onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer">
           <i data-lucide="moon" id="theme-icon" class="w-4 h-4"></i>
         </button>
       </div>
@@ -208,74 +461,48 @@
   <!-- MAIN APP CONTAINER -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 flex flex-col space-y-6">
 
-    <!-- KPI STATS HERO STRIP (Bespoke Glass Deck) -->
+    <!-- KPI STATS HERO STRIP -->
     <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="glass-card rounded-2xl p-4.5 flex items-center justify-between border-t border-t-blue-500/60 relative overflow-hidden group">
-        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all"></div>
+      <div class="glass-card rounded-2xl p-4 flex items-center justify-between border-l-4 border-l-blue-500">
         <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Flagship Schemes</p>
-          <p class="text-2xl font-display font-extrabold text-white mt-1">7 + Custom</p>
-          <p class="text-[11px] text-blue-400 mt-0.5 flex items-center space-x-1">
-            <span>PMFBY, KISAN, PM-JAY</span>
-          </p>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Supported Schemes</p>
+          <p class="text-2xl font-extrabold text-white mt-1">7 + Upload</p>
+          <p class="text-[11px] text-blue-400 mt-0.5">PMFBY, KISAN, MGNREGA...</p>
         </div>
-        <div class="p-3 bg-blue-500/10 rounded-xl text-blue-400 border border-blue-500/20">
-          <i data-lucide="landmark" class="w-5 h-5"></i>
+        <div class="p-3 bg-blue-500/10 rounded-xl text-blue-400">
+          <i data-lucide="landmark" class="w-6 h-6"></i>
         </div>
       </div>
 
-      <div class="glass-card rounded-2xl p-4.5 flex items-center justify-between border-t border-t-emerald-500/60 relative overflow-hidden group">
-        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all"></div>
-        <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Empirical Accuracy</p>
-          <p class="text-2xl font-display font-extrabold text-emerald-400 mt-1">94.05%</p>
-          <p class="text-[11px] text-emerald-500/80 mt-0.5">Held-out PMFBY Benchmark</p>
-        </div>
-        <div class="p-3 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20">
-          <i data-lucide="check-circle-2" class="w-5 h-5"></i>
-        </div>
-      </div>
 
-      <div class="glass-card rounded-2xl p-4.5 flex items-center justify-between border-t border-t-amber-500/60 relative overflow-hidden group">
-        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all"></div>
-        <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-mono">False Support Rate</p>
-          <p class="text-2xl font-display font-extrabold text-amber-400 mt-1">2.63%</p>
-          <p class="text-[11px] text-amber-500/80 mt-0.5 font-mono">vs 81.58% Numeric Baseline</p>
-        </div>
-        <div class="p-3 bg-amber-500/10 rounded-xl text-amber-400 border border-amber-500/20">
-          <i data-lucide="shield-alert" class="w-5 h-5"></i>
-        </div>
-      </div>
 
-      <div class="glass-card rounded-2xl p-4.5 flex items-center justify-between border-t border-t-purple-500/60 relative overflow-hidden group">
-        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-purple-500/10 rounded-full blur-xl group-hover:bg-purple-500/20 transition-all"></div>
+      <div class="glass-card rounded-2xl p-4 flex items-center justify-between border-l-4 border-l-purple-500">
         <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Deterministic Latency</p>
-          <p class="text-2xl font-display font-extrabold text-purple-400 mt-1">1.42 ms</p>
-          <p class="text-[11px] text-purple-400/80 mt-0.5 font-mono">Instant Mathematical Gate</p>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Average Latency</p>
+          <p class="text-2xl font-extrabold text-purple-400 mt-1">1.42 ms</p>
+          <p class="text-[11px] text-purple-500/80 mt-0.5">Deterministic CPU Gate</p>
         </div>
-        <div class="p-3 bg-purple-500/10 rounded-xl text-purple-400 border border-purple-500/20">
-          <i data-lucide="zap" class="w-5 h-5"></i>
+        <div class="p-3 bg-purple-500/10 rounded-xl text-purple-400">
+          <i data-lucide="zap" class="w-6 h-6"></i>
         </div>
       </div>
     </section>
 
     <!-- ACTIVE SCHEME BANNER (WHEN UPLOAD SESSION IS ACTIVE) -->
-    <div id="upload-session-banner" class="hidden glass-card rounded-2xl p-4.5 border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent flex items-center justify-between shadow-lg">
-      <div class="flex items-center space-x-3.5">
-        <div class="p-3 rounded-xl bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30">
-          <i data-lucide="file-check" class="w-6 h-6"></i>
+    <div id="upload-session-banner" class="hidden glass-card rounded-2xl p-4 border border-amber-500/40 bg-amber-500/10 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="p-2.5 rounded-xl bg-amber-500/20 text-amber-400">
+          <i data-lucide="file-check" class="w-5 h-5"></i>
         </div>
         <div>
           <div class="flex items-center space-x-2">
             <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Active Custom Document Mode</span>
-            <span id="upload-file-pill" class="px-2.5 py-0.5 text-xs font-mono font-semibold bg-amber-500/20 text-amber-300 rounded-md border border-amber-500/30">document.pdf</span>
+            <span id="upload-file-pill" class="px-2 py-0.5 text-xs font-mono bg-amber-500/20 text-amber-300 rounded">document.pdf</span>
           </div>
-          <p class="text-xs text-slate-300 mt-1" id="upload-stats-text">Indexed 12 evidence passages and 8 candidate numerical rules.</p>
+          <p class="text-xs text-slate-300 mt-0.5" id="upload-stats-text">Indexed 12 evidence passages and 8 candidate numerical rules.</p>
         </div>
       </div>
-      <button onclick="clearUploadSession()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-600 transition-all flex items-center space-x-1.5 cursor-pointer">
+      <button onclick="clearUploadSession()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all flex items-center space-x-1 cursor-pointer">
         <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
         <span>Return to Flagship Corpus</span>
       </button>
@@ -286,119 +513,83 @@
     <!-- ============================================================= -->
     <div id="tab-verify" class="space-y-6">
       
-      <!-- INTERACTIVE SCHEME SELECTOR RIBBON (Tactile Dock) -->
-      <div class="glass-card rounded-2xl p-4 space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-1.5">
-            <i data-lucide="layers" class="w-4 h-4 text-blue-400"></i>
-            <span>Select Target Government Scheme</span>
-          </span>
-          <span class="text-[11px] text-slate-400 font-mono">7 Pre-Loaded Statutory Schemes</span>
-        </div>
-        
-        <div id="scheme-ribbon" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-          <!-- Populated dynamically via JS with active badges & icons -->
-        </div>
-      </div>
-
       <!-- Top Input & Selector Area -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <!-- Left Column: Scheme Details & Retrieval Controls -->
-        <div class="glass-card rounded-2xl p-5 space-y-4 flex flex-col justify-between">
-          <div class="space-y-4">
-            
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div class="flex items-center space-x-2">
-                <i data-lucide="sliders" class="w-4 h-4 text-blue-400"></i>
-                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Engine Tuning</h2>
-              </div>
-              <span id="active-scheme-badge" class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30">PMFBY</span>
+        <!-- Left Column: Scheme & Configuration -->
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="settings" class="w-4 h-4 text-blue-400"></i>
+              <h2 class="text-sm font-bold uppercase tracking-wider text-slate-200">Domain Configuration</h2>
             </div>
-
-            <!-- Native Scheme Dropdown (Hidden visually or synced) -->
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Active Scheme Backend</label>
-              <select id="select-scheme" onchange="onSchemeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                <!-- Populated via JS -->
-              </select>
-            </div>
-
-            <!-- Preset Benchmark Scenarios Dropdown -->
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <label class="block text-xs font-semibold text-slate-400">Benchmark Preset Scenarios</label>
-                <span class="text-[10px] text-blue-400 font-mono">1-Click Test</span>
-              </div>
-              <select id="select-scenario" onchange="onScenarioSelect()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                <!-- Populated via JS -->
-              </select>
-            </div>
-
-            <!-- Retrieval Channel & Top-K -->
-            <div class="grid grid-cols-2 gap-3 pt-1">
-              <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Retrieval Channel</label>
-                <select id="select-retrieval-method" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                  <option value="hybrid" selected>Hybrid (RRF Fusion)</option>
-                  <option value="semantic">Semantic (MiniLM)</option>
-                  <option value="lexical">Lexical (BM25)</option>
-                  <option value="table">Table Structured</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Top-K Evidence</label>
-                <select id="select-top-k" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                  <option value="3">Top 3 Passages</option>
-                  <option value="5" selected>Top 5 Passages</option>
-                  <option value="8">Top 8 Passages</option>
-                  <option value="10">Top 10 Passages</option>
-                </select>
-              </div>
-            </div>
-
+            <span id="active-scheme-badge" class="px-2 py-0.5 text-xs font-mono font-semibold rounded bg-blue-500/20 text-blue-400">PMFBY</span>
           </div>
 
-          <!-- Scheme Metadata Card -->
-          <div id="scheme-meta-box" class="p-3.5 bg-slate-900/80 rounded-xl border border-slate-800 text-xs space-y-1.5">
-            <div class="flex items-center space-x-1.5 text-blue-400 font-bold">
-              <i data-lucide="info" class="w-3.5 h-3.5"></i>
-              <span id="scheme-meta-name">Pradhan Mantri Fasal Bima Yojana</span>
+          <!-- Scheme Dropdown -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1.5">Government Scheme</label>
+            <select id="select-scheme" onchange="onSchemeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <!-- Benchmark Demonstration Scenario -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-semibold text-slate-400">Preset Benchmark Scenarios</label>
+              <span class="text-[10px] text-blue-400">Auto-fill</span>
             </div>
-            <p id="scheme-meta-desc" class="text-slate-400 leading-relaxed">Comprehensive yield & weather insurance with crop-specific premium caps and mandatory qualifiers.</p>
+            <select id="select-scenario" onchange="onScenarioSelect()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <!-- Retrieval Strategy -->
+          <div class="grid grid-cols-2 gap-3 pt-2">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Retrieval Channel</label>
+              <select id="select-retrieval-method" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="hybrid" selected>Hybrid (RRF Fusion)</option>
+                <option value="semantic">Semantic (MiniLM)</option>
+                <option value="lexical">Lexical (BM25)</option>
+                <option value="table">Table Structured</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Top-K Evidence</label>
+              <select id="select-top-k" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="3">Top 3 Passages</option>
+                <option value="5" selected>Top 5 Passages</option>
+                <option value="8">Top 8 Passages</option>
+                <option value="10">Top 10 Passages</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Domain Overview Box -->
+          <div id="scheme-meta-box" class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs text-slate-400 space-y-1.5">
+            <p class="font-medium text-slate-300" id="scheme-meta-name">Pradhan Mantri Fasal Bima Yojana</p>
+            <p id="scheme-meta-desc">Comprehensive yield & weather insurance with crop-specific premium caps and mandatory qualifiers.</p>
           </div>
 
         </div>
 
-        <!-- Right 2 Columns: Input Textareas and Verification Console -->
+        <!-- Right 2 Columns: Input Textareas and Verification Trigger -->
         <div class="lg:col-span-2 glass-card rounded-2xl p-5 flex flex-col justify-between space-y-4">
           <div class="space-y-4">
             
-            <!-- Quick Preset Scenario Launcher Chips -->
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-1.5">
-                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
-                  <span>Quick Test Scenarios (Click to Load)</span>
-                </span>
-                <span class="text-[10px] text-slate-500 font-mono">Ground Truth Verified</span>
-              </div>
-              <div id="scenario-chips-container" class="flex flex-wrap gap-2">
-                <!-- Populated dynamically via JS -->
-              </div>
-            </div>
-
-            <!-- Citizen / Policy Question Input -->
+            <!-- Context Question Input -->
             <div>
               <div class="flex items-center justify-between mb-1.5">
                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center space-x-1.5">
                   <i data-lucide="help-circle" class="w-3.5 h-3.5 text-blue-400"></i>
-                  <span>Citizen / Policy Context Question</span>
+                  <span>Citizen / Policy Question Context</span>
                 </label>
                 <span class="text-[10px] text-slate-500 font-mono">Optional Context Scope</span>
               </div>
               <input id="input-question" type="text" placeholder="e.g. For Kharif food grains under PMFBY, what is the maximum farmer premium?" 
-                     class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                     class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
             </div>
 
             <!-- Candidate Numerical Claim Input -->
@@ -408,26 +599,26 @@
                   <i data-lucide="edit-3" class="w-3.5 h-3.5 text-blue-400"></i>
                   <span>Candidate Numerical Claim to Verify</span>
                 </label>
-                <span class="text-[10px] text-slate-500 font-mono">Subject to 10-Step Deterministic Gate</span>
+                <span class="text-[10px] text-slate-500 font-mono">Subject to 10-Step Verification</span>
               </div>
               <textarea id="input-claim" rows="3" placeholder="e.g. Under the 2023 PMFBY operational guidelines, the maximum farmer premium for Kharif food grains is 2.0% of Sum Insured."
-                        class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-3.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-sans leading-relaxed"></textarea>
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-sans leading-relaxed"></textarea>
             </div>
 
           </div>
 
           <!-- Bottom Action Buttons Bar -->
-          <div class="flex flex-col sm:flex-row items-center justify-between pt-3 border-t border-slate-800 gap-3">
-            <div class="flex items-center space-x-2 text-xs text-slate-400 font-medium">
-              <i data-lucide="terminal" class="w-4 h-4 text-slate-500"></i>
-              <span>Press <kbd class="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-mono text-slate-300 font-semibold shadow-inner">Ctrl+Enter</kbd> to verify</span>
+          <div class="flex flex-col sm:flex-row items-center justify-between pt-2 border-t border-slate-800 gap-3">
+            <div class="flex items-center space-x-2 text-xs text-slate-400">
+              
+              
             </div>
 
             <div class="flex items-center space-x-3 w-full sm:w-auto">
-              <button onclick="clearInputs()" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700 transition-all cursor-pointer">
+              <button onclick="clearInputs()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700 transition-all cursor-pointer">
                 Clear
               </button>
-              <button id="btn-verify" onclick="executeVerification()" class="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:brightness-110 shadow-lg shadow-blue-500/25 transition-all cursor-pointer">
+              <button id="btn-verify" onclick="executeVerification()" class="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-500/25 transition-all cursor-pointer">
                 <i data-lucide="shield-check" class="w-4 h-4"></i>
                 <span>Verify Numerical Claim</span>
               </button>
@@ -439,44 +630,43 @@
       </div>
 
       <!-- VERIFICATION RESULT CONTAINER (RENDERED DYNAMICALLY) -->
-      <div id="verification-result-box" class="hidden space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div id="verification-result-box" class="hidden space-y-6">
 
-        <!-- Main Verdict Command Center -->
-        <div id="verdict-card" class="glass-card rounded-2xl p-6 border-l-8 transition-all relative overflow-hidden">
-          
+        <!-- Main Verdict Card -->
+        <div id="verdict-card" class="glass-card rounded-2xl p-6 border-l-8 transition-all">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
             <div>
-              <div class="flex items-center space-x-4">
-                <span id="verdict-icon-container" class="p-3 rounded-2xl shadow-inner"></span>
+              <div class="flex items-center space-x-3">
+                <span id="verdict-icon-container" class="p-2 rounded-xl"></span>
                 <div>
-                  <div class="flex items-center space-x-2.5">
-                    <span class="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">Formal Engine Verdict</span>
-                    <span id="verdict-timing-badge" class="px-2.5 py-0.5 text-[11px] font-mono font-semibold rounded-md bg-slate-900 border border-slate-800 text-slate-300">1.2ms</span>
+                  <div class="flex items-center space-x-2">
+                    <span class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">Verification Verdict</span>
+                    <span id="verdict-timing-badge" class="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-800 text-slate-300">1.2ms</span>
                   </div>
-                  <h3 id="verdict-title" class="text-3xl font-display font-black tracking-tight mt-1">SUPPORTED</h3>
+                  <h3 id="verdict-title" class="text-2xl font-extrabold tracking-tight mt-0.5">SUPPORTED</h3>
                 </div>
               </div>
             </div>
 
             <!-- Action buttons: Certificate & Copy -->
-            <div class="flex items-center space-x-2.5">
-              <button onclick="downloadAuditCertificate()" class="flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600/20 text-blue-300 border border-blue-500/40 hover:bg-blue-600/30 transition-all cursor-pointer shadow-sm">
-                <i data-lucide="award" class="w-4 h-4 text-blue-400"></i>
+            <div class="flex items-center space-x-2">
+              <button onclick="downloadAuditCertificate()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/30 hover:bg-blue-600/30 transition-all cursor-pointer">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
                 <span>Download Audit Certificate</span>
               </button>
-              <button onclick="copyVerdictReport()" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-all cursor-pointer shadow-sm" title="Copy Report">
-                <i data-lucide="copy" class="w-4 h-4"></i>
+              <button onclick="copyVerdictReport()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer" title="Copy Report">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
               </button>
             </div>
           </div>
 
           <!-- Rationale Paragraph -->
-          <div class="mt-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 text-sm text-slate-200 leading-relaxed font-medium" id="verdict-rationale">
+          <div class="mt-4 text-sm text-slate-200 leading-relaxed font-medium" id="verdict-rationale">
             <!-- Populated via JS -->
           </div>
 
           <!-- Context Mismatch Warning if any -->
-          <div id="context-mismatch-alert" class="hidden mt-3.5 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start space-x-2.5">
+          <div id="context-mismatch-alert" class="hidden mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start space-x-2">
             <i data-lucide="alert-triangle" class="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-400"></i>
             <div>
               <span class="font-bold">Context Mismatch Dimensions: </span>
@@ -485,27 +675,26 @@
           </div>
 
           <!-- Groq LPU Explanation Accordion / Section -->
-          <div id="groq-explain-section" class="mt-4 pt-3.5 border-t border-slate-800/80">
+          <div id="groq-explain-section" class="mt-4 pt-3 border-t border-slate-800/80">
             <div class="flex items-center justify-between">
-              <button id="btn-groq-explain" onclick="triggerGroqExplanation()" class="flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-600/30 via-indigo-600/30 to-purple-600/20 hover:from-purple-600/40 hover:to-indigo-600/40 text-purple-200 border border-purple-500/40 transition-all cursor-pointer shadow-sm">
-                <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i>
+              <button id="btn-groq-explain" onclick="triggerGroqExplanation()" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-purple-600/30 to-indigo-600/30 hover:from-purple-600/50 hover:to-indigo-600/50 text-purple-200 border border-purple-500/30 transition-all cursor-pointer">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
                 <span id="btn-groq-explain-text">Explain Verdict with Groq AI</span>
               </button>
-              <span class="text-[11px] text-slate-500 font-mono">Civic Translation for Citizens & Officers</span>
+              <span class="text-[10px] text-slate-500 font-mono">Plain-English Citizen Translation</span>
             </div>
             
-            <div id="groq-explain-result" class="hidden mt-3.5 p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 text-slate-200 text-xs leading-relaxed space-y-2">
-              <div class="flex items-center justify-between text-[11px] font-mono text-purple-300 font-bold border-b border-purple-500/20 pb-2">
+            <div id="groq-explain-result" class="hidden mt-3 p-3.5 rounded-xl bg-purple-950/20 border border-purple-500/30 text-slate-200 text-xs leading-relaxed space-y-1.5">
+              <div class="flex items-center justify-between text-[11px] font-mono text-purple-300 font-semibold border-b border-purple-500/20 pb-1.5">
                 <span class="flex items-center space-x-1.5">
                   <i data-lucide="cpu" class="w-3.5 h-3.5 text-purple-400"></i>
-                  <span>Plain-English Citizen Translation</span>
+                  <span>Citizen-Friendly Policy Explanation</span>
                 </span>
-                <span id="groq-explain-model-badge" class="text-[10px] text-purple-400/90 font-mono px-2 py-0.5 rounded bg-purple-500/20 border border-purple-500/30">⚡ Groq LPU</span>
+                <span id="groq-explain-model-badge" class="text-[10px] text-purple-400/80 font-mono"> Groq LPU</span>
               </div>
-              <p id="groq-explain-text" class="pt-1 text-slate-300 leading-normal text-xs md:text-sm font-sans"></p>
+              <p id="groq-explain-text" class="pt-1 text-slate-300 leading-normal"></p>
             </div>
           </div>
-
         </div>
 
         <!-- 2 Columns: Condition Diff Matrix & Condition Checks Grid -->
@@ -517,18 +706,18 @@
               <i data-lucide="git-commit" class="w-4 h-4 text-blue-400"></i>
               <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200">Side-by-Side Condition Alignment Diff</h4>
             </div>
-
+            
             <div class="overflow-x-auto">
               <table class="w-full text-xs text-left">
                 <thead class="text-[11px] text-slate-400 uppercase tracking-wider bg-slate-900/60 border-b border-slate-800">
                   <tr>
-                    <th class="py-2.5 px-3 font-semibold">Condition Dimension</th>
-                    <th class="py-2.5 px-3 font-semibold">Claimed Value</th>
-                    <th class="py-2.5 px-3 font-semibold">Statutory Rule</th>
-                    <th class="py-2.5 px-3 font-semibold text-right">Alignment</th>
+                    <th class="py-2 px-3 font-semibold">Condition Dimension</th>
+                    <th class="py-2 px-3 font-semibold text-slate-300">Claimed Specification</th>
+                    <th class="py-2 px-3 font-semibold text-slate-300">Official Evidence Rule</th>
+                    <th class="py-2 px-3 font-semibold text-right">Status</th>
                   </tr>
                 </thead>
-                <tbody id="condition-diff-tbody" class="divide-y divide-slate-800/60 font-mono text-slate-300">
+                <tbody id="condition-diff-tbody" class="divide-y divide-slate-800/60 font-mono">
                   <!-- Populated via JS -->
                 </tbody>
               </table>
@@ -556,7 +745,7 @@
               <i data-lucide="library" class="w-4 h-4 text-indigo-400"></i>
               <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200">Retrieved Official Evidence Passages & Tables</h4>
             </div>
-            <span id="evidence-count-badge" class="px-2.5 py-0.5 text-xs font-mono font-semibold rounded-md bg-slate-900 border border-slate-800 text-slate-300">5 Passages</span>
+            <span id="evidence-count-badge" class="px-2 py-0.5 text-xs font-mono rounded bg-slate-800 text-slate-300">5 Passages</span>
           </div>
 
           <div id="retrieved-evidence-cards" class="space-y-3">
@@ -574,40 +763,17 @@
     <div id="tab-qa" class="hidden space-y-6">
       <div class="glass-card rounded-2xl p-6 space-y-4">
         <div>
-          <h3 class="text-xl font-display font-bold text-white flex items-center space-x-2">
+          <h3 class="text-lg font-bold text-white flex items-center space-x-2">
             <i data-lucide="help-circle" class="w-5 h-5 text-blue-400"></i>
-            <span>Grounded Policy Question Answering Studio</span>
+            <span>Grounded Policy Question Answering</span>
           </h3>
-          <p class="text-xs text-slate-400 mt-1">Ask questions in natural language. FieldGuard retrieves the most relevant authoritative policy passages and synthesizes an answer grounded strictly in physical PDF document citations.</p>
+          <p class="text-xs text-slate-400 mt-1">Ask questions in natural language. FieldGuard retrieves the most relevant authoritative policy passages and generates answers grounded strictly in document evidence.</p>
         </div>
 
-        <!-- Popular Suggested Civic Questions -->
-        <div class="space-y-2 pt-1">
-          <p class="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
-            <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-amber-400"></i>
-            <span>Frequently Asked Policy Queries (Click to Ask)</span>
-          </p>
-          <div class="flex flex-wrap gap-2">
-            <button onclick="setAndExecuteQA('PMFBY', 'What is the farmer premium rate for Kharif food grains and oilseeds?')" class="px-3 py-1.5 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer">
-              🌾 PMFBY: Kharif food grains premium?
-            </button>
-            <button onclick="setAndExecuteQA('PM_KISAN', 'What is the annual financial assistance provided under PM-KISAN?')" class="px-3 py-1.5 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer">
-              💰 PM-KISAN: Annual income support?
-            </button>
-            <button onclick="setAndExecuteQA('PM_JAY', 'What is the annual secondary and tertiary health cover per family under PM-JAY?')" class="px-3 py-1.5 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer">
-              🏥 PM-JAY: Health cover limit?
-            </button>
-            <button onclick="setAndExecuteQA('MGNREGA', 'How many days of guaranteed unskilled wage employment does MGNREGS provide?')" class="px-3 py-1.5 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer">
-              👷 MGNREGS: Guaranteed employment days?
-            </button>
-          </div>
-        </div>
-
-        <!-- Search Input Bar -->
-        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+        <div class="flex flex-col sm:flex-row gap-3">
           <input id="qa-question-input" type="text" placeholder="e.g. What is the financial assistance provided under PM-KISAN?" 
-                 class="flex-1 bg-slate-900/90 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
-          <button onclick="executeQA()" class="flex items-center justify-center space-x-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 shadow-md shadow-blue-500/25 transition-all cursor-pointer">
+                 class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <button onclick="executeQA()" class="flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-500/25 transition-all cursor-pointer">
             <i data-lucide="search" class="w-4 h-4"></i>
             <span>Search & Answer</span>
           </button>
@@ -615,19 +781,19 @@
       </div>
 
       <!-- QA Result Box -->
-      <div id="qa-result-box" class="hidden space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-200">
+      <div id="qa-result-box" class="hidden space-y-4">
         <!-- Answer Box -->
-        <div class="glass-card rounded-2xl p-6 border-l-4 border-l-blue-500 space-y-3.5">
+        <div class="glass-card rounded-2xl p-6 border-l-4 border-l-blue-500 space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-blue-400">
-              <i data-lucide="sparkles" class="w-4 h-4 text-blue-400"></i>
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
               <span>Grounded Policy Answer</span>
             </div>
             <span id="qa-synthesized-badge" class="hidden px-2.5 py-1 text-[11px] font-mono font-semibold rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30">
-              ⚡ Groq LPU (qwen/qwen3.8-27b)
+              Groq LPU (qwen/qwen3.8-27b)
             </span>
           </div>
-          <div id="qa-answer-text" class="text-sm md:text-base text-slate-100 leading-relaxed font-medium"></div>
+          <div id="qa-answer-text" class="text-sm text-slate-100 leading-relaxed font-medium"></div>
         </div>
 
         <!-- Citations List -->
@@ -647,7 +813,7 @@
     <div id="tab-benchmark" class="hidden space-y-6">
       
       <div class="glass-card rounded-2xl p-6 space-y-2">
-        <h3 class="text-xl font-display font-bold text-white flex items-center space-x-2">
+        <h3 class="text-lg font-bold text-white flex items-center space-x-2">
           <i data-lucide="bar-chart-2" class="w-5 h-5 text-emerald-400"></i>
           <span>Empirical Evaluation Leaderboard</span>
         </h3>
@@ -660,17 +826,17 @@
         <div class="glass-card rounded-2xl p-5 space-y-4">
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200">PMFBY Held-Out Benchmark (168 Claims)</h4>
-            <span class="px-2.5 py-0.5 text-[10px] font-mono font-semibold rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Primary Domain</span>
+            <span class="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-500/20 text-emerald-400">Primary Domain</span>
           </div>
 
           <div class="space-y-3">
-            <div class="p-3.5 bg-blue-600/10 border border-blue-500/40 rounded-xl flex items-center justify-between shadow-sm">
+            <div class="p-3 bg-blue-600/10 border border-blue-500/30 rounded-xl flex items-center justify-between">
               <div>
                 <p class="text-xs font-bold text-white">FieldGuard (Full Pipeline)</p>
-                <p class="text-[11px] text-blue-300 font-mono">Condition-Aware 10-Step Gate</p>
+                <p class="text-[11px] text-blue-300">Condition-Aware 10-Step Gate</p>
               </div>
               <div class="text-right">
-                <span class="text-xl font-display font-extrabold text-emerald-400">94.05%</span>
+                <span class="text-lg font-extrabold text-emerald-400">94.05%</span>
                 <p class="text-[10px] text-slate-400 font-mono">FSR: 2.63% | Cov: 82.1%</p>
               </div>
             </div>
@@ -678,10 +844,10 @@
             <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between">
               <div>
                 <p class="text-xs font-bold text-slate-300">Baseline C: Numeric + Basic Context</p>
-                <p class="text-[11px] text-slate-400 font-mono">Standard context filtering</p>
+                <p class="text-[11px] text-slate-400">Standard context filtering</p>
               </div>
               <div class="text-right">
-                <span class="text-lg font-display font-bold text-slate-300">72.62%</span>
+                <span class="text-lg font-extrabold text-slate-300">72.62%</span>
                 <p class="text-[10px] text-amber-400 font-mono">FSR: 36.84% | Cov: 87.5%</p>
               </div>
             </div>
@@ -689,10 +855,10 @@
             <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between">
               <div>
                 <p class="text-xs font-bold text-slate-300">Baseline B: Numeric Only</p>
-                <p class="text-[11px] text-slate-400 font-mono">String/Regex match in chunk</p>
+                <p class="text-[11px] text-slate-400">String/Regex match in chunk</p>
               </div>
               <div class="text-right">
-                <span class="text-lg font-display font-bold text-rose-400">44.64%</span>
+                <span class="text-lg font-extrabold text-rose-400">44.64%</span>
                 <p class="text-[10px] text-rose-400 font-mono">FSR: 81.58% | Cov: 98.2%</p>
               </div>
             </div>
@@ -700,10 +866,10 @@
             <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between">
               <div>
                 <p class="text-xs font-bold text-slate-300">Baseline A: Retrieval Only</p>
-                <p class="text-[11px] text-slate-400 font-mono">Cosine threshold heuristic</p>
+                <p class="text-[11px] text-slate-400">Cosine threshold heuristic</p>
               </div>
               <div class="text-right">
-                <span class="text-lg font-display font-bold text-slate-400">10.71%</span>
+                <span class="text-lg font-extrabold text-slate-400">10.71%</span>
                 <p class="text-[10px] text-slate-500 font-mono">FSR: 21.05% | Cov: 14.3%</p>
               </div>
             </div>
@@ -714,17 +880,17 @@
         <div class="glass-card rounded-2xl p-5 space-y-4">
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200">PM-KISAN Transfer Evaluation (26 Claims)</h4>
-            <span class="px-2.5 py-0.5 text-[10px] font-mono font-semibold rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30">Zero-Shot Domain</span>
+            <span class="px-2 py-0.5 text-[10px] font-mono rounded bg-blue-500/20 text-blue-400">Independent Domain</span>
           </div>
 
           <div class="space-y-3">
-            <div class="p-3.5 bg-blue-600/10 border border-blue-500/40 rounded-xl flex items-center justify-between shadow-sm">
+            <div class="p-3 bg-blue-600/10 border border-blue-500/30 rounded-xl flex items-center justify-between">
               <div>
                 <p class="text-xs font-bold text-white">FieldGuard (Zero-Shot Transfer)</p>
-                <p class="text-[11px] text-blue-300 font-mono">Without domain re-tuning</p>
+                <p class="text-[11px] text-blue-300">Without domain re-tuning</p>
               </div>
               <div class="text-right">
-                <span class="text-xl font-display font-extrabold text-emerald-400">92.31%</span>
+                <span class="text-lg font-extrabold text-emerald-400">92.31%</span>
                 <p class="text-[10px] text-slate-400 font-mono">FSR: 0.00% | Cov: 84.6%</p>
               </div>
             </div>
@@ -732,10 +898,10 @@
             <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between">
               <div>
                 <p class="text-xs font-bold text-slate-300">Baseline C: Basic Context</p>
-                <p class="text-[11px] text-slate-400 font-mono">Standard context filtering</p>
+                <p class="text-[11px] text-slate-400">Standard context filtering</p>
               </div>
               <div class="text-right">
-                <span class="text-lg font-display font-bold text-slate-300">69.23%</span>
+                <span class="text-lg font-extrabold text-slate-300">69.23%</span>
                 <p class="text-[10px] text-amber-400 font-mono">FSR: 42.86% | Cov: 92.3%</p>
               </div>
             </div>
@@ -743,10 +909,10 @@
             <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between">
               <div>
                 <p class="text-xs font-bold text-slate-300">Baseline B: Numeric Only</p>
-                <p class="text-[11px] text-slate-400 font-mono">String/Regex match in chunk</p>
+                <p class="text-[11px] text-slate-400">String/Regex match in chunk</p>
               </div>
               <div class="text-right">
-                <span class="text-lg font-display font-bold text-rose-400">50.00%</span>
+                <span class="text-lg font-extrabold text-rose-400">50.00%</span>
                 <p class="text-[10px] text-rose-400 font-mono">FSR: 71.43% | Cov: 100%</p>
               </div>
             </div>
@@ -763,7 +929,7 @@
     <div id="tab-docs" class="hidden space-y-6">
       <div class="glass-card rounded-2xl p-6 space-y-4">
         <div>
-          <h3 class="text-xl font-display font-bold text-white flex items-center space-x-2">
+          <h3 class="text-lg font-bold text-white flex items-center space-x-2">
             <i data-lucide="book-open" class="w-5 h-5 text-indigo-400"></i>
             <span>Policy Rules & Evidence Repository</span>
           </h3>
@@ -801,7 +967,7 @@
           <i data-lucide="upload-cloud" class="w-5 h-5 text-amber-400"></i>
           <h3 class="text-base font-bold text-white">Upload Government Scheme Document</h3>
         </div>
-        <button onclick="closeUploadModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer">
+        <button onclick="closeUploadModal()" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -873,7 +1039,7 @@
   <footer class="glass-card border-t border-slate-800/80 py-4 px-4 text-center text-xs text-slate-500">
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
       <p>FieldGuard: Condition-Aware Verification of Numerical Claims in Government-Scheme Question Answering</p>
-      <p class="font-mono text-[11px] text-slate-400">MSc Data Science Capstone Artifact &bull; MIT License</p>
+      <p class="font-mono text-[11px] text-slate-400">MSc Data Science Capstone Project, SUBIKSHA N</p>
     </div>
   </footer>
 
@@ -912,11 +1078,11 @@
         if (!pill || !dot || !txt) return;
 
         if (data.groq_active) {
-          pill.className = "hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/40 text-purple-300 text-xs font-semibold shadow-sm shadow-purple-500/10 glow-border-purple";
+          pill.className = "hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-medium shadow-sm shadow-purple-500/10";
           dot.className = "w-2 h-2 rounded-full bg-purple-400 animate-pulse";
-          txt.innerHTML = `⚡ Groq LPU Active <span class="font-mono text-[10px] text-purple-400">(${data.groq_model || 'qwen/qwen3.8-27b'})</span>`;
+          txt.innerHTML = ` Groq LPU Active <span class="font-mono text-[10px] text-purple-400"></span>`;
         } else {
-          pill.className = "hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium";
+          pill.className = "hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium";
           dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
           txt.textContent = "Engine Active (Offline CPU)";
         }
@@ -932,14 +1098,27 @@
       if (isDark) {
         html.classList.remove("dark");
         html.classList.add("light");
+        try { localStorage.setItem("fieldguard_theme", "light"); } catch (e) {}
         document.getElementById("theme-icon").setAttribute("data-lucide", "sun");
       } else {
         html.classList.remove("light");
         html.classList.add("dark");
+        try { localStorage.setItem("fieldguard_theme", "dark"); } catch (e) {}
         document.getElementById("theme-icon").setAttribute("data-lucide", "moon");
       }
       lucide.createIcons();
     }
+
+    // Initialize saved theme on load
+    try {
+      const savedTheme = localStorage.getItem("fieldguard_theme");
+      if (savedTheme === "light") {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.classList.add("light");
+        const iconEl = document.getElementById("theme-icon");
+        if (iconEl) iconEl.setAttribute("data-lucide", "sun");
+      }
+    } catch (e) {}
 
     // Switch Main Tabs
     function switchTab(tabId) {
@@ -961,9 +1140,9 @@
       Object.entries(navIds).forEach(([tId, nId]) => {
         const btn = document.getElementById(nId);
         if (tId === tabId) {
-          btn.className = "flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 transition-all shadow-md shadow-blue-500/20";
+          btn.className = "flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-600 transition-all shadow-sm";
         } else {
-          btn.className = "flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all";
+          btn.className = "flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all";
         }
       });
       lucide.createIcons();
@@ -976,7 +1155,6 @@
         const data = await res.json();
         SCHEMES = data.schemes;
 
-        // Populate Native Select Dropdown
         const select = document.getElementById("select-scheme");
         select.innerHTML = "";
         SCHEMES.forEach(s => {
@@ -986,61 +1164,12 @@
           select.appendChild(opt);
         });
 
-        // Populate Interactive Scheme Ribbon
-        renderSchemeRibbon();
-
         // Set default to PMFBY
         select.value = "PMFBY";
         onSchemeChange();
       } catch (err) {
         console.error("Failed to load schemes:", err);
       }
-    }
-
-    // Render Interactive Scheme Ribbon
-    function renderSchemeRibbon() {
-      const ribbon = document.getElementById("scheme-ribbon");
-      if (!ribbon) return;
-      ribbon.innerHTML = "";
-
-      const iconMap = {
-        "PMFBY": "shield-check",
-        "PM_KISAN": "banknote",
-        "MGNREGA": "hard-hat",
-        "PM_JAY": "heart-pulse",
-        "PMAY_G": "home",
-        "PM_KUSUM": "sun",
-        "PMMY": "briefcase"
-      };
-
-      SCHEMES.forEach(s => {
-        const card = document.createElement("button");
-        const isActive = s.id === CURRENT_SCHEME;
-        const iconName = iconMap[s.id] || "landmark";
-        card.id = `scheme-pill-${s.id}`;
-        card.className = `scheme-chip flex flex-col items-center justify-center p-3 rounded-xl border text-center cursor-pointer ${
-          isActive 
-            ? "active" 
-            : "bg-slate-900/60 border-slate-800/80 hover:bg-slate-800/50 text-slate-400 hover:text-white"
-        }`;
-        card.onclick = () => selectSchemeFromRibbon(s.id);
-
-        card.innerHTML = `
-          <div class="w-8 h-8 rounded-lg flex items-center justify-center mb-1.5 ${isActive ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-800 text-slate-400'}">
-            <i data-lucide="${iconName}" class="w-4 h-4"></i>
-          </div>
-          <span class="text-xs font-bold tracking-tight ${isActive ? 'text-white' : 'text-slate-300'}">${s.badge}</span>
-          <span class="text-[10px] text-slate-500 font-mono mt-0.5">${s.verified_rules} Rules</span>
-        `;
-        ribbon.appendChild(card);
-      });
-      lucide.createIcons();
-    }
-
-    function selectSchemeFromRibbon(schemeId) {
-      const select = document.getElementById("select-scheme");
-      select.value = schemeId;
-      onSchemeChange();
     }
 
     // Handle Scheme Dropdown Change
@@ -1054,9 +1183,6 @@
       document.getElementById("scheme-meta-name").textContent = schemeObj.name;
       document.getElementById("scheme-meta-desc").textContent = schemeObj.description;
 
-      // Update Ribbon Active State
-      renderSchemeRibbon();
-
       // Populate scenario dropdown
       const scenarioSelect = document.getElementById("select-scenario");
       scenarioSelect.innerHTML = '<option value="">-- Custom Query / Claim --</option>';
@@ -1067,45 +1193,13 @@
         scenarioSelect.appendChild(opt);
       });
 
-      // Populate Scenario Quick-Chips
-      renderScenarioChips(schemeObj.scenarios);
-
-      // Select first scenario by default
+      // Clear or select first scenario
       if (schemeObj.scenarios.length > 0) {
         scenarioSelect.value = "0";
         onScenarioSelect();
       } else {
         clearInputs();
       }
-    }
-
-    // Render Scenario Quick-Chips for Instant 1-Click Verification
-    function renderScenarioChips(scenarios) {
-      const container = document.getElementById("scenario-chips-container");
-      if (!container) return;
-      container.innerHTML = "";
-
-      scenarios.forEach((sc, idx) => {
-        const chip = document.createElement("button");
-        let badgeColor = "bg-blue-500/10 text-blue-300 border-blue-500/30 hover:bg-blue-500/20";
-        let icon = "check";
-        if (sc.label.toLowerCase().includes("distractor") || sc.label.toLowerCase().includes("wrong")) {
-          badgeColor = "bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20";
-          icon = "alert-triangle";
-        } else if (sc.label.toLowerCase().includes("contradict")) {
-          badgeColor = "bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20";
-          icon = "x";
-        }
-
-        chip.className = `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border ${badgeColor} transition-all cursor-pointer shadow-sm`;
-        chip.onclick = () => {
-          document.getElementById("select-scenario").value = idx;
-          onScenarioSelect();
-        };
-        chip.innerHTML = `<i data-lucide="${icon}" class="w-3.5 h-3.5"></i><span>${sc.label}</span>`;
-        container.appendChild(chip);
-      });
-      lucide.createIcons();
     }
 
     // Handle Scenario selection
@@ -1183,42 +1277,42 @@
       const vTiming = document.getElementById("verdict-timing-badge");
       const vRationale = document.getElementById("verdict-rationale");
 
-      vTiming.textContent = `⚡ ${data.latency_ms} ms (Instant Gate)`;
-      vRationale.textContent = data.verification_rationale;
+      vTiming.textContent = `${data.latency_ms} ms`;
+      let rationaleText = data.verification_rationale || "";
+      if (data.verdict_reason_code) {
+        rationaleText += ` [Reason: ${data.verdict_reason_code}]`;
+      }
+      if (data.matched_page !== undefined && data.matched_page !== null) {
+        rationaleText += ` | Matched Page: ${data.matched_page}`;
+      }
+      if (data.matched_score !== undefined && data.matched_score !== null) {
+        rationaleText += ` | Candidate Score: ${data.matched_score}`;
+      }
+      vRationale.textContent = rationaleText;
 
       const verdict = data.verdict;
       vTitle.textContent = verdict;
 
       if (verdict === "SUPPORTED") {
-        vCard.className = "glass-card rounded-2xl p-6 border-l-8 border-l-emerald-500 bg-emerald-500/5 glow-border-emerald transition-all";
-        vTitle.className = "text-3xl font-display font-black tracking-tight mt-1 text-emerald-400";
-        vIcon.className = "p-3 rounded-2xl bg-emerald-500/20 text-emerald-400 ring-2 ring-emerald-500/30";
-        vIcon.innerHTML = '<i data-lucide="check-circle-2" class="w-8 h-8"></i>';
-
-        // Trigger celebratory confetti for supported verdict
-        if (typeof confetti === "function") {
-          confetti({
-            particleCount: 60,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#10b981', '#3b82f6', '#6366f1']
-          });
-        }
+        vCard.className = "glass-card rounded-2xl p-6 border-l-8 border-l-emerald-500 bg-emerald-500/5 transition-all";
+        vTitle.className = "text-2xl font-extrabold tracking-tight mt-0.5 text-emerald-400";
+        vIcon.className = "p-2 rounded-xl bg-emerald-500/20 text-emerald-400";
+        vIcon.innerHTML = '<i data-lucide="check-circle-2" class="w-7 h-7"></i>';
       } else if (verdict === "WRONG_CONTEXT") {
-        vCard.className = "glass-card rounded-2xl p-6 border-l-8 border-l-amber-500 bg-amber-500/5 glow-border-amber transition-all";
-        vTitle.className = "text-3xl font-display font-black tracking-tight mt-1 text-amber-400";
-        vIcon.className = "p-3 rounded-2xl bg-amber-500/20 text-amber-400 ring-2 ring-amber-500/30";
-        vIcon.innerHTML = '<i data-lucide="alert-triangle" class="w-8 h-8"></i>';
+        vCard.className = "glass-card rounded-2xl p-6 border-l-8 border-l-amber-500 bg-amber-500/5 transition-all";
+        vTitle.className = "text-2xl font-extrabold tracking-tight mt-0.5 text-amber-400";
+        vIcon.className = "p-2 rounded-xl bg-amber-500/20 text-amber-400";
+        vIcon.innerHTML = '<i data-lucide="alert-triangle" class="w-7 h-7"></i>';
       } else if (verdict === "CONTRADICTED") {
         vCard.className = "glass-card rounded-2xl p-6 border-l-8 border-l-rose-500 bg-rose-500/5 transition-all";
-        vTitle.className = "text-3xl font-display font-black tracking-tight mt-1 text-rose-400";
-        vIcon.className = "p-3 rounded-2xl bg-rose-500/20 text-rose-400 ring-2 ring-rose-500/30";
-        vIcon.innerHTML = '<i data-lucide="x-circle" class="w-8 h-8"></i>';
+        vTitle.className = "text-2xl font-extrabold tracking-tight mt-0.5 text-rose-400";
+        vIcon.className = "p-2 rounded-xl bg-rose-500/20 text-rose-400";
+        vIcon.innerHTML = '<i data-lucide="x-circle" class="w-7 h-7"></i>';
       } else {
-        vCard.className = "glass-card rounded-2xl p-6 border-l-8 border-l-purple-500 bg-purple-500/5 glow-border-purple transition-all";
-        vTitle.className = "text-3xl font-display font-black tracking-tight mt-1 text-purple-400";
-        vIcon.className = "p-3 rounded-2xl bg-purple-500/20 text-purple-400 ring-2 ring-purple-500/30";
-        vIcon.innerHTML = '<i data-lucide="help-circle" class="w-8 h-8"></i>';
+        vCard.className = "glass-card rounded-2xl p-6 border-l-8 border-l-purple-500 bg-purple-500/5 transition-all";
+        vTitle.className = "text-2xl font-extrabold tracking-tight mt-0.5 text-purple-400";
+        vIcon.className = "p-2 rounded-xl bg-purple-500/20 text-purple-400";
+        vIcon.innerHTML = '<i data-lucide="help-circle" class="w-7 h-7"></i>';
       }
 
       // Context mismatch warning box
@@ -1262,29 +1356,26 @@
       // Render 10-Step Gate Checklist
       const checksList = document.getElementById("condition-checks-list");
       checksList.innerHTML = "";
-      data.condition_checks.forEach((c, idx) => {
+      data.condition_checks.forEach(c => {
         const item = document.createElement("div");
-        item.className = "p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex items-start justify-between gap-3 hover:border-slate-700 transition-all";
+        item.className = "p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start justify-between gap-3";
         
         let badgeIcon = '<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>';
-        let badgeColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
+        let badgeColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
         if (c.status === "FAILED") {
           badgeIcon = '<i data-lucide="x" class="w-4 h-4 text-rose-400"></i>';
-          badgeColor = "text-rose-400 bg-rose-500/10 border-rose-500/30";
+          badgeColor = "text-rose-400 bg-rose-500/10 border-rose-500/20";
         } else if (c.status === "INSUFFICIENT") {
           badgeIcon = '<i data-lucide="alert-circle" class="w-4 h-4 text-purple-400"></i>';
-          badgeColor = "text-purple-400 bg-purple-500/10 border-purple-500/30";
+          badgeColor = "text-purple-400 bg-purple-500/10 border-purple-500/20";
         }
 
         item.innerHTML = `
-          <div class="flex items-start space-x-2">
-            <span class="text-[10px] font-mono text-slate-500 font-bold mt-0.5">0${idx+1}</span>
-            <div>
-              <p class="font-semibold text-slate-200">${c.name}</p>
-              <p class="text-[11px] text-slate-400 mt-0.5">${c.detail}</p>
-            </div>
+          <div>
+            <p class="font-semibold text-slate-200">${c.name}</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">${c.detail}</p>
           </div>
-          <span class="flex-shrink-0 px-2.5 py-0.5 rounded text-[10px] font-mono font-bold border ${badgeColor}">
+          <span class="flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${badgeColor}">
             ${c.status}
           </span>
         `;
@@ -1298,7 +1389,7 @@
       
       data.retrieved_evidence.forEach((ev, idx) => {
         const card = document.createElement("div");
-        card.className = "p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-all space-y-2.5 shadow-sm";
+        card.className = "p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 hover:border-slate-700 transition-all space-y-2";
         
         let roleBadge = '<span class="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-800 text-slate-400">NEUTRAL EXCERPT</span>';
         if (ev.role === "SUPPORTING") {
@@ -1311,29 +1402,21 @@
           <div class="flex items-center justify-between text-xs">
             <div class="flex items-center space-x-2">
               <span class="font-mono text-slate-500 font-bold">#${idx + 1}</span>
-              <span class="font-bold text-slate-200">${ev.document_id || 'Policy Document'}</span>
-              <span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 font-mono text-[10px]">Page ${ev.page || 'N/A'}</span>
+              <span class="font-bold text-slate-300">${ev.document_id || 'Policy Document'}</span>
+              <span class="px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono text-[10px]">Page ${ev.page || 'N/A'}</span>
             </div>
             <div class="flex items-center space-x-2">
               ${roleBadge}
               <span class="font-mono text-[10px] text-blue-400">Score: ${ev.score}</span>
             </div>
           </div>
-          <p class="text-xs text-slate-300 font-mono leading-relaxed bg-slate-950/80 p-3 rounded-lg border border-slate-800/80">${ev.text}</p>
+          <p class="text-xs text-slate-300 font-mono leading-relaxed bg-slate-950 p-2.5 rounded-lg border border-slate-800/80">${ev.text}</p>
         `;
         evCards.appendChild(card);
       });
 
       lucide.createIcons();
       resultBox.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // Helper to Quick-Ask from Tab 2 Chips
-    function setAndExecuteQA(schemeId, question) {
-      CURRENT_SCHEME = schemeId;
-      document.getElementById("select-scheme").value = schemeId;
-      document.getElementById("qa-question-input").value = question;
-      executeQA();
     }
 
     // Execute Grounded Policy Q&A
@@ -1348,7 +1431,7 @@
       const ansText = document.getElementById("qa-answer-text");
       const citList = document.getElementById("qa-citations-list");
 
-      ansText.innerHTML = '<span class="text-slate-400 animate-pulse">Searching authoritative guidelines and synthesizing page-grounded answer with Groq LPU...</span>';
+      ansText.innerHTML = '<span class="text-slate-400 animate-pulse">Searching authoritative guidelines and synthesizing page-grounded answer...</span>';
       resBox.classList.remove("hidden");
 
       try {
@@ -1367,7 +1450,7 @@
 
         const synBadge = document.getElementById("qa-synthesized-badge");
         if (data.synthesized_by && data.synthesized_by !== "None") {
-          synBadge.textContent = "⚡ " + data.synthesized_by;
+          synBadge.textContent = " " + data.synthesized_by;
           synBadge.classList.remove("hidden");
         } else {
           synBadge.classList.add("hidden");
@@ -1376,13 +1459,13 @@
         citList.innerHTML = "";
         data.top_chunks.forEach((c, idx) => {
           const item = document.createElement("div");
-          item.className = "p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-1.5 shadow-sm";
+          item.className = "p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1";
           item.innerHTML = `
             <div class="flex items-center justify-between text-slate-400 font-mono text-[11px]">
-              <span class="font-bold text-slate-300">[Passage ${idx + 1}] Source: ${c.source_document_id} &bull; Page ${c.physical_pdf_page || 'N/A'}</span>
+              <span>[Passage ${idx + 1}] Source: ${c.source_document_id} &bull; Page ${c.physical_pdf_page || 'N/A'}</span>
               <span class="text-blue-400">Score: ${roundScore(c.retrieval_score)}</span>
             </div>
-            <p class="text-slate-200 leading-relaxed font-sans">${c.text}</p>
+            <p class="text-slate-200">${c.text}</p>
           `;
           citList.appendChild(item);
         });
@@ -1422,7 +1505,7 @@
         });
         const data = await res.json();
         expText.textContent = data.explanation;
-        modelBadge.textContent = data.model || "⚡ Groq LPU";
+        modelBadge.textContent = data.model || " Groq LPU";
         btnText.textContent = "Re-explain with Groq AI";
       } catch (err) {
         expText.textContent = "Explanation request failed: " + err;

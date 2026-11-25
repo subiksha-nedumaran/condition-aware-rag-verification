@@ -1,0 +1,5 @@
+scheme,retriever_name,split,total_queries,eligible_query_count,hits_at_1,hits_at_3,hits_at_5,hits_at_10,recall_at_1,recall_at_3,recall_at_5,recall_at_10,item_recall_at_5,mrr,mean_latency_ms
+pmay_g,semantic,test,40,30,21,24,27,30,0.7,0.8,0.9,1.0,0.9,0.7901,60.1585
+pmay_g,lexical,test,40,30,24,24,30,30,0.8,0.8,1.0,1.0,1.0,0.8483,0.4715
+pmay_g,table,test,40,30,24,27,30,30,0.8,0.9,1.0,1.0,1.0,0.8583,8.9587
+pmay_g,hybrid,test,40,30,24,26,30,30,0.8,0.8667,1.0,1.0,1.0,0.8522,10.0362
