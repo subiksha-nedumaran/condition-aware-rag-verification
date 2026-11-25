@@ -1,7 +1,7 @@
-# FieldGuard — Complete Implementation, Audit, and Evolution Log
+# Complete Implementation, Audit, and Evolution Log
 
 ## Project Identity
-- **Project Title:** FieldGuard: Condition-Aware Verification of Numerical Claims in Government-Scheme Question Answering Using Retrieval-Augmented Generation (RAG)
+- **Project Title:** Condition-Aware Verification of Numerical Claims in Government-Scheme Question Answering Using Retrieval-Augmented Generation (RAG)
 - **Primary Domain:** Data Science, NLP, Information Retrieval, Fact Verification, AI Safety
 - **Core Scheme:** Pradhan Mantri Fasal Bima Yojana (PMFBY), Ministry of Agriculture & Farmers Welfare, Government of India.
 - **Repository Root:** `C:\FieldGuard_ag`
@@ -124,7 +124,7 @@ Evaluated on 168 held-out test claims (114 non-supported claims):
 | Baseline C: Numeric + Basic Context | 72.62% | 72.62% | 36.84% | 42 / 114 | 87.50% | 12.50% |
 | **FieldGuard Full** | **94.05%** | **94.11%** | **2.63%** | **3 / 114** | **82.14%** | **17.86%** |
 
-*Per-Class F1 for FieldGuard Full:*
+*Per-Class F1 for Proposed System (Full):*
 - `SUPPORTED` F1: **0.9444** (51 True Positives, 3 False Contradictions)
 - `CONTRADICTED` F1: **0.9176** (39 True Positives, 3 False Supports, 1 Wrong Context)
 - `WRONG_CONTEXT` F1: **0.9500** (38 True Positives, 0 False Supports)

@@ -1,4 +1,4 @@
-2#Condition-Aware Verification of Numerical Claims in Government-Scheme Question Answering Using RAG
+# Condition-Aware Verification of Numerical Claims in Government Scheme Question Answering Using RAG
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [Automated tests](tests/)
@@ -271,6 +271,6 @@ esults/screenshots/:
 
 ## 8. License & Attribution
 
-Developed as an MSc Data Science Capstone Research Project. Distributed under the MIT License.
+Developed as an MSc Data Science Capstone Research Project. 
 Official PMFBY guidelines and PIB releases are public government documents courtesy of the Ministry of Agriculture & Farmers Welfare and Press Information Bureau, Government of India.
 
