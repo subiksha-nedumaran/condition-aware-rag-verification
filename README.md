@@ -6,7 +6,7 @@
 [PM-KISAN saved held-out results: 42.50% accuracy](results/pm_kisan/tables/verification_comparison.csv)
 [![False Support Rate: 2.63%](https://img.shields.io/badge/FSR-2.63%25-brightgreen.svg)](results/metrics/)
 [![Schemes: 7 Flagship + Upload](https://img.shields.io/badge/schemes-7%20Flagship%20%2B%20Custom%20Upload-blueviolet.svg)](src/fieldguard/schemes/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-informational.svg)](LICENSE)
+
 
 **This project** is a research-oriented MSc Data Science capstone project developing and empirically evaluating a condition-aware numerical claim verification pipeline for Retrieval-Augmented Generation (RAG) in public policy question answering.
 
